@@ -13,9 +13,6 @@ customtkinter.set_default_color_theme("green")
 
 service_id = "version_1"
 
-
-print("Jacob is cute")
-
 class Data():
     def __init__(self, data):
         self.data = data
