@@ -1,12 +1,11 @@
 import customtkinter
 from tkinter import font
+import random
 
 class App(customtkinter.CTk):
-    WIDTH = 700
-    HEIGHT = 500
-
-    def __init__(self):
+    def __init__(self, username: str):
         super().__init__()
+        self.username = username
 
     def load_app_menu(self):
         self.grid_columnconfigure(1, weight=1)
