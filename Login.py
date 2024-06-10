@@ -12,7 +12,7 @@ class Login(customtkinter.CTk):
     LIGHT_RED_COLOUR = "#f54c4c"
     LIGHT_GREY_COLOUR = "#383837"
     DEFAULT_TEXT_COLOUR = ("black", "grey") #not default
-    DEFAULT_BORDER_COLOUR = ("#979DA2", "#949A9F") #not default
+    DEFAULT_BORDER_COLOUR = "gray37"
 
     WIDTH = 700
     HEIGHT = 500
@@ -34,7 +34,6 @@ class Login(customtkinter.CTk):
         self._loaded_login_page = False
         self._loaded_create_account_page = False
         self.load_login_menu()
-        self.display_password_toggle_widget()
 
     def display_login_invalidation(self):
         self.invalid_label = customtkinter.CTkLabel(self.login_frame, text="Invalid username or password", text_color=self.LIGHT_RED_COLOUR)
@@ -51,20 +50,6 @@ class Login(customtkinter.CTk):
 
     def display_entry_widget_normal(self, widget):
         widget.configure(placeholder_text_color=self.DEFAULT_TEXT_COLOUR,border_color=self.DEFAULT_BORDER_COLOUR)
-
-    def toggle_password(self):
-        self.toggle_password.configure(text=self.toggle_password.cget('text')=='Show Password'
-                                      and 'Hide Password' or 'Show Password')
-        if self._loaded_login_page:
-            if self.login_password_entry.cget('show') == '':
-                self.login_password_entry.configure(show='*')
-            else:
-                self.login_password_entry.configure(show='')
-        else:
-            if self.acc_password_entry.cget('show') == '':
-                self.acc_password_entry.configure(show='*')
-            else:
-                self.acc_password_entry.configure(show='')
 
     def auth_login(self):
         username = self.login_username_entry.get()
@@ -122,13 +107,13 @@ class Login(customtkinter.CTk):
             show="*",                              
         )
         self.login_submit_button = customtkinter.CTkButton(self.content_frame, text="Submit", command=self.auth_login)
-        self.create_account_button = customtkinter.CTkButton(self.content_frame, hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent", text="Create Account", font=('',15,'underline'), command=self.load_account_creation_menu)
+        self.create_account_button = customtkinter.CTkButton(self.content_frame, hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent", text="Create Account", font=('',15,'underline'), command=self.load_create_account_menu)
         self.login_username_entry.pack(pady=10)
         self.login_password_entry.pack()
         self.login_submit_button.pack(pady=10)
         self.create_account_button.pack()
 
-    def load_account_creation_menu(self):
+    def load_create_account_menu(self):
         self.delete_current_page()
         self.change_title_text('Create an Account')
         self._loaded_create_account_page = True
@@ -147,10 +132,6 @@ class Login(customtkinter.CTk):
         self.acc_password_entry.pack()
         self.acc_register_button.pack(pady=10)
         self.login_button.pack()
-
-    def display_password_toggle_widget(self):
-        self.toggle_password = customtkinter.CTkButton(self.content_frame, text='Show Password', command=self.toggle_password)
-        self.toggle_password.pack()
 
 if __name__ == "__main__":
     login = Login()
