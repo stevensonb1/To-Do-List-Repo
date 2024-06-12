@@ -26,6 +26,8 @@ class Data():
         try:
             with open(filename, "wb") as f:
                 pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+        except FileNotFoundError:
+            print(f'[Pickle.Dump] No file was found for: {filename}')
         except Exception as err:
             print("Error while saving data to file:", filename, "[ERROR:]", err)
 
@@ -33,5 +35,7 @@ class Data():
         try:
             with open(filename, "rb") as f:
                 return pickle.load(f)
+        except FileNotFoundError:
+            print(f'[Pickle.Load] No file was found for: {filename}')
         except Exception as err:
             print("Error while loading data from file:", filename, "[ERROR]:", err)

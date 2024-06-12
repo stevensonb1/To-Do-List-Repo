@@ -1,5 +1,6 @@
 import customtkinter
 import keyring
+import Constants
 from App import App
 
 # Default configuration
@@ -14,14 +15,11 @@ class Login(customtkinter.CTk):
     DEFAULT_TEXT_COLOUR = ("black", "grey") #not default
     DEFAULT_BORDER_COLOUR = "gray37"
 
-    WIDTH = 700
-    HEIGHT = 500
-
     def __init__(self):
         super().__init__()
         
-        self.title("app")
-        self.geometry(f"{self.WIDTH}x{self.HEIGHT}")
+        self.title("Login")
+        self.geometry(f"{Constants.WindowWidth}x{Constants.WindowHeight}")
 
         self.login_frame = customtkinter.CTkFrame(self, width=300, height=350)
         self.login_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
@@ -35,12 +33,15 @@ class Login(customtkinter.CTk):
         self._loaded_create_account_page = False
         self.load_login_menu()
 
+    def exit_window(self):
+       self.protocol("WM_DELETE_WINDOW", lambda: self.destroy())
+
     def display_login_invalidation(self):
         self.invalid_label = customtkinter.CTkLabel(self.login_frame, text="Invalid username or password", text_color=self.LIGHT_RED_COLOUR)
         self.invalid_label.after(2000, self.invalid_label.destroy)
         self.invalid_label.pack()
     
-    def display_account_exist(self):
+    def display_username_exist(self):
         self.account_exist_label = customtkinter.CTkLabel(self.login_frame, text="Username already exist", text_color=self.LIGHT_RED_COLOUR)
         self.account_exist_label.after(2000, self.account_exist_label.destroy)
         self.account_exist_label.pack()
@@ -57,15 +58,13 @@ class Login(customtkinter.CTk):
         if len(username) == 0 or len(password) == 0:
             self.display_entry_widget_error(self.login_username_entry)
             self.display_entry_widget_error(self.login_password_entry)
-           # self.display_login_invalidation()
         else:
             if keyring.get_password(service_id, username) == password:
-                self.login_frame.destroy()
-                App(username).load_app_menu()
+                self.exit_window()
+                App(username)
             else:
                 self.display_entry_widget_error(self.login_username_entry)
                 self.display_entry_widget_error(self.login_password_entry)
-               # self.display_login_invalidation()
 
     def auth_create_acc(self):
         username = self.acc_username_entry.get()
@@ -73,14 +72,13 @@ class Login(customtkinter.CTk):
         if len(username) == 0 or len(password) == 0:
             self.display_entry_widget_error(self.acc_username_entry)
             self.display_entry_widget_error(self.acc_password_entry)
-           # self.display_login_invalidation()
         else:
             self.acc_username_entry.delete(0, customtkinter.END)
             self.acc_password_entry.delete(0, customtkinter.END)
             self.display_entry_widget_normal(self.acc_username_entry)
             self.display_entry_widget_normal(self.acc_password_entry)
             if keyring.get_password(service_id, username) != None:
-                self.display_account_exist()
+                self.display_username_exist()
             else:
                 keyring.set_password(service_id, username, password)
         
