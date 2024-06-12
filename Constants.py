@@ -1,4 +1,2 @@
-Window = {
-    'Height': 500,
-    'Width': 700
-}
+WindowHeight = 500
+WindowWidth = 700
