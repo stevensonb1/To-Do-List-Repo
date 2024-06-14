@@ -2,40 +2,16 @@ import pickle
 
 class Data():
     def __init__(self, username: str):
-        if username != None:
-            print(f'Initialized data class for user: {username}')
-            self.save_data(f'userdata/{username}', self.__create_empty_object())
-            self.__update_data(username)
+        self.username = username
 
-    def __create_empty_object(self):
-        return {
-            "list_count": 1
-        }
+    def save(self, object):
+        with open(f'{self.username}_data.pkl', "wb") as file:
+            pickle.dump(object, file)
     
-    def __update_data(self, username: str):
-        self.data = self.load_data(f'userdata/{username}')
-        print(self.data)
-    
-    def __get__(self):
-        return self.data
-    
-    def __merge_changes(self, changes):
-        pass
-    
-    def save_data(self, filename: str, obj):
+    def load(self):
         try:
-            with open(filename, "wb") as f:
-                pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(f'{self.username}_data.pkl', "rb") as file:
+                loaded_data = pickle.load(file)
+                return loaded_data
         except FileNotFoundError:
-            print(f'[Pickle.Dump] No file was found for: {filename}')
-        except Exception as err:
-            print("Error while saving data to file:", filename, "[ERROR:]", err)
-
-    def load_data(self, filename: str):
-        try:
-            with open(filename, "rb") as f:
-                return pickle.load(f)
-        except FileNotFoundError:
-            print(f'[Pickle.Load] No file was found for: {filename}')
-        except Exception as err:
-            print("Error while loading data from file:", filename, "[ERROR]:", err)
+            print(f'{self.username}_data.pkl does not exist. No data found.')

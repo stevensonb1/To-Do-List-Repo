@@ -5,3 +5,5 @@ DisplayErrors = {
     'InvalidPasswordLength': "Password must be more than 8 characters",
     'UsernameExist': 'This username is already in use'
 }
+
+BaseFont = "Arial"

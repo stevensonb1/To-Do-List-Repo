@@ -29,8 +29,6 @@ class Login(customtkinter.CTk):
         self.content_frame = customtkinter.CTkFrame(self.login_frame, fg_color="transparent")
         self.content_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
 
-        self._loaded_login_page = False
-        self._loaded_create_account_page = False
         self.load_login_menu()
 
     def exit_window(self):
@@ -52,11 +50,9 @@ class Login(customtkinter.CTk):
     def auth_login_credentials(self):
         username = self.login_username_entry.get()
         password = self.login_password_entry.get()
-        if len(username) == 0 or len(password) < 8:
+        if len(username) == 0 or len(password) == 0:
             self.display_entry_widget_error(self.login_username_entry)
             self.display_entry_widget_error(self.login_password_entry)
-            if len(password) < 8:
-                self.display_status_error('InvalidPasswordLength')
         else:
             if keyring.get_password(service_id, username) == password:
                 self.exit_window()
@@ -86,8 +82,6 @@ class Login(customtkinter.CTk):
     def delete_current_page(self):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-            self._loaded_login_page = False
-            self._loaded_create_account_page = False
             
     def change_title_text(self, str):
         self.title_label.configure(text=str)
@@ -95,7 +89,6 @@ class Login(customtkinter.CTk):
     def load_login_menu(self):
         self.delete_current_page()
         self.change_title_text('Login to Account')
-        self._loaded_login_page = True
         self.login_username_entry = customtkinter.CTkEntry(self.content_frame,
             placeholder_text="Username",
             font=("Helvetica", 14),
@@ -115,7 +108,6 @@ class Login(customtkinter.CTk):
     def load_create_account_menu(self):
         self.delete_current_page()
         self.change_title_text('Create an Account')
-        self._loaded_create_account_page = True
         self.acc_username_entry = customtkinter.CTkEntry(self.content_frame,
             placeholder_text="Enter Username",
             font=("Helvetica", 14),                            
