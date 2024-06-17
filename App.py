@@ -4,6 +4,12 @@ import random
 import Constants
 from Data import Data
 
+class Task(customtkinter.CTkFrame):
+    def __init(self, parent, username: str):
+        super().__init__(master=parent)
+        self.username = username
+        self.master = parent
+
 class List(customtkinter.CTkFrame):
     def __init__(self, parent, username: str):
         super().__init__(master=parent)
@@ -17,22 +23,54 @@ class List(customtkinter.CTkFrame):
         self.main_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.main_frame.pack_propagate(False)
 
+        self.load_list_frame()
+        self.load_saved_lists()
+
+    def load_list_frame(self):
+        self.lists_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=400, fg_color="#383736")
+        self.lists_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+
         self.welcome_label = customtkinter.CTkLabel(self.main_frame, text=f'Welcome {self.username}', 
                 font=customtkinter.CTkFont(family="Arial", size=25, weight="normal"))
         self.welcome_label.pack(pady=10)
 
-        self.lists_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=400, fg_color="#383736")
-        self.lists_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
-
         self.create_list = customtkinter.CTkButton(self.lists_frame, text="CREATE LIST", width=200, height=35,
-                font=customtkinter.CTkFont(family="Arial", size=15, weight="bold"))
+                font=customtkinter.CTkFont(family="Arial", size=15, weight="bold"), command=self.load_create_list_menu)
         self.create_list.place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
         self.lists_container = customtkinter.CTkScrollableFrame(self.lists_frame, width=400, height=290,
                 scrollbar_button_color="#2d2c2c", fg_color="transparent")
         self.lists_container.place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
 
-        self.load_saved_lists()
+    def load_create_list_menu(self):
+        self.lists_frame.destroy()
+        self.welcome_label.destroy()
+
+        self.create_list_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=300, fg_color="#383736")
+        self.create_list_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+        self.create_list_frame.pack_propagate(False)
+
+        self.create_list_title = customtkinter.CTkLabel(self.create_list_frame, text="CREATE LIST",
+                font=self.master.get_font(size=25))
+        self.create_list_title.pack(pady=10)
+
+        self.create_list_close = customtkinter.CTkButton(self.create_list_frame, text="X", width=35, corner_radius=0,
+                font=self.master.get_font(size=22, bold=True), fg_color="red", hover_color="dark red")
+        self.create_list_close.place(relx=0.99,rely=0.07,anchor='e')
+
+        self.seperator = self.master.seperator(self.create_list_frame)
+
+        self.create_list_name = customtkinter.CTkEntry(self.create_list_frame, placeholder_text="ENTER NAME", corner_radius=0,
+                width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
+                font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
+        self.create_list_name.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+
+        self.create_list_complete = customtkinter.CTkButton(self.create_list_frame, text="COMPLETE", text_color="white",
+                width=200, font=self.master.get_font(), command=lambda: self.create_list_complete_activated(self.create_list_name.get()))
+        self.create_list_complete.place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
+
+    def create_list_complete_activated(self, name: str):
+        print(name)
 
     def load_saved_lists(self):
         for i in range(5):
@@ -72,6 +110,7 @@ class App(customtkinter.CTk):
 
         self.title("App")
         self.geometry(f"{Constants.WindowWidth}x{Constants.WindowHeight}")
+        self.resizable(width=False, height=False)
         
         self.load_fonts()
         self.list = List(parent=self, username=username)
@@ -79,7 +118,7 @@ class App(customtkinter.CTk):
         self.user_data = Data("Tony_Account")
         if self.user_data.load() == None:
             print("User has no data, giving data..")
-            self.user_data.save({"name": "Alice", "age": 30})
+            self.user_data.save({"name": "Tony", "age": 30})
         print(f'user_data: {self.user_data.load()}')
 
         self.change_appearance("Dark")
@@ -87,7 +126,12 @@ class App(customtkinter.CTk):
 
     def get_font(self, family: str = None, size: int = 20, bold: bool = False):
         return customtkinter.CTkFont(family=family or Constants.BaseFont, size=size, 
-                                     weight=f'{bold and "bold" or "normal"}')
+                weight=f'{bold and "bold" or "normal"}')
+    
+    def seperator(self, master):
+        seperator = customtkinter.CTkFrame(master, height=2, width=450, fg_color="white")
+        seperator.place(relx=0.5,rely=0.15,anchor=customtkinter.CENTER)
+        return seperator
 
     def load_fonts(self):
         self.default_font = font.nametofont("TkDefaultFont")
