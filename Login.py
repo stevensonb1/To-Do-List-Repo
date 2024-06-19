@@ -20,6 +20,7 @@ class Login(customtkinter.CTk):
         
         self.title("Login")
         self.geometry(f"{Constants.WindowWidth}x{Constants.WindowHeight}")
+        self.resizable(width=False, height=False)
 
         self.login_frame = customtkinter.CTkFrame(self, width=300, height=350)
         self.login_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
@@ -68,14 +69,14 @@ class Login(customtkinter.CTk):
             self.display_entry_widget_error(self.acc_username_entry)
             self.display_entry_widget_error(self.acc_password_entry)
             if len(password) < 8:
-                self.display_status_error('InvalidPasswordLength')
+                self.display_status_error('Login_InvalidPasswordLength')
         else:
             self.acc_username_entry.delete(0, customtkinter.END)
             self.acc_password_entry.delete(0, customtkinter.END)
             self.display_entry_widget_normal(self.acc_username_entry)
             self.display_entry_widget_normal(self.acc_password_entry)
             if keyring.get_password(service_id, username) != None:
-                self.display_status_error('UsernameExist')
+                self.display_status_error('Login_InvalidUsername')
             else:
                 keyring.set_password(service_id, username, password)
         
