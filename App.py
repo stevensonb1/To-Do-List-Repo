@@ -7,16 +7,86 @@ import Constants
 from Data import Data
 
 class Task(customtkinter.CTkFrame):
-    def __init(self, parent, username: str):
-        super().__init__(master=parent)
-        self.username = username
-        self.master = parent
+    def __init__(self, master, list, list_data):
+        super().__init__(master=master)
+        self.list = list
+        self.list_data = list_data
+        self.master = master
+
+    def load_tasks_frame(self):
+        list_name = self.list_data['name']
+
+        self.list.lists_frame.destroy()
+        self.list.welcome_label.destroy()
+
+        self.master.adjust_window_geomtry(extended=True)
+
+        self.tasks_frame = customtkinter.CTkFrame(self.list.main_frame, width=350, height=550, fg_color="#383736")
+        self.tasks_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+        self.tasks_frame.pack_propagate(False)
+
+        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_name} | Tasks',
+            font=self.master.get_font(size=25)).pack(pady=30)
+        
+        tasks_back = customtkinter.CTkButton(self.tasks_frame, text="BACK", width=100, height=5, corner_radius=0,
+            font=self.master.get_font(size=15, bold=True), fg_color="red", hover_color="dark red",
+            command=lambda: self.list.reload_list_frame(self.tasks_frame)).place(relx=0.02,rely=0.92,anchor='w')
+        
+        add_task = customtkinter.CTkButton(self.tasks_frame, text="+", height=20, width=65, corner_radius=0,
+            font=self.master.get_font(size=18, bold=True), fg_color="#00D1FF", text_color="white",
+            hover_color="#26A6C2", command=lambda: self.load_create_task_menu(list_name)).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
+        
+    def load_create_task_menu(self, list_name: str):
+        self.tasks_frame.destroy()
+
+        self.master.adjust_window_geomtry()
+
+        self.create_task_frame = customtkinter.CTkFrame(self.list.main_frame, width=500, height=400, fg_color="#383736")
+        self.create_task_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+        self.create_task_frame.pack_propagate(False)
+
+        create_task_title = customtkinter.CTkLabel(self.create_task_frame, text="CREATE TASK",
+            font=self.master.get_font(size=25)).pack(pady=10)
+
+        create_task_close = customtkinter.CTkButton(self.create_task_frame, text="X", width=35, corner_radius=0,
+            font=self.master.get_font(size=22, bold=True), fg_color="red", hover_color="dark red",
+            command=lambda: self.reload_list_frame(self.create_task_frame)).place(relx=0.99,rely=0.06,anchor='e')
+
+        self.master.seperator(self.create_task_frame)
+
+        self.name_var = customtkinter.StringVar()
+        self.description_var = customtkinter.StringVar()
+        self.priority_var = customtkinter.StringVar()
+
+        create_task_name = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="NAME", corner_radius=0,
+            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
+            font=self.master.get_font(size=25, bold=True), textvariable=self.name_var, justify=customtkinter.CENTER)
+        create_task_name.place(relx=0.5,rely=0.25,anchor=customtkinter.CENTER)
+
+        create_task_description = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="DESCRIPTION", corner_radius=0,
+            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
+            font=self.master.get_font(size=25, bold=True), textvariable=self.description_var, justify=customtkinter.CENTER)
+        create_task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
+
+        create_task_priority = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="PRIORITY", corner_radius=0,
+            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
+            font=self.master.get_font(size=25, bold=True), textvariable=self.priority_var, justify=customtkinter.CENTER)
+        create_task_priority.place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
+
+        create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
+            width=200, font=self.master.get_font(), 
+            command=self.create_task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
+    
+    def create_task_complete_activated(self):
+        print(self.name_var.get())
+        print(self.description_var.get())
+        print(self.priority_var.get())
 
 class List(customtkinter.CTkFrame):
-    def __init__(self, parent, username: str):
-        super().__init__(master=parent)
+    def __init__(self, master, username: str):
+        super().__init__(master=master)
         self.username = username
-        self.master = parent
+        self.master = master
 
         self.load_list_menu()
 
@@ -75,7 +145,7 @@ class List(customtkinter.CTkFrame):
 
         self.master.seperator(self.create_list_frame)
 
-        create_list_name = customtkinter.CTkEntry(self.create_list_frame, placeholder_text="ENTER NAME", corner_radius=0,
+        create_list_name = customtkinter.CTkEntry(self.create_list_frame, placeholder_text="NAME", corner_radius=0,
             width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
             font=self.master.get_font(size=25, bold=True), 
             justify=customtkinter.CENTER)
@@ -93,11 +163,12 @@ class List(customtkinter.CTkFrame):
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
 
     def create_list_complete_activated(self, name: str):
+        original_name = name
         name = name.lower()
         data = self.master.user_data.get()
-        if len(name) > 0 and len(name) < 15:
+        if len(name) > Constants.App["ListNameMinimumLength"] and len(name) < Constants.App["ListNameMaximumLength"]:
             if not name in data['lists']:
-                data['lists'][name] = {'tasks': {}, 'date_created': datetime.datetime.now()}
+                data['lists'][name] = {'name': original_name, 'tasks': {}, 'date_created': datetime.datetime.now()}
                 self.master.user_data.update(data)
                 self.reload_list_frame(self.create_list_frame)
             else:
@@ -110,11 +181,13 @@ class List(customtkinter.CTkFrame):
     
     def load_saved_lists(self, data):
         for list_name, list_data in data['lists'].items():
+            task = Task(master=self.master, list=self, list_data=list_data)
+
             list_item = customtkinter.CTkFrame(self.lists_container, width=400, height=100, fg_color="#5c5b5a")
             list_item.pack(pady=8)
             list_item.pack_propagate(False)
 
-            customtkinter.CTkLabel(list_item, text=list_name,
+            customtkinter.CTkLabel(list_item, text=list_data['name'],
                     font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
 
             unfinished_tasks_count = list_data['tasks'] and self.get_unfinished_tasks_count(list_data['tasks'])
@@ -123,29 +196,12 @@ class List(customtkinter.CTkFrame):
                     font=self.master.get_font(size=16)).place(relx=0.02,rely=0.85,anchor="w")
 
             customtkinter.CTkButton(list_item, text="TASKS", width=70, height=20, corner_radius=0,
-                    fg_color="#ECB528", hover_color="#C8940F", text_color="white", command=lambda: self.load_tasks_frame(list_name),
+                    fg_color="#ECB528", hover_color="#C8940F", text_color="white", command=task.load_tasks_frame,
                     font=self.master.get_font(size=12, bold=True)).place(relx=0.78, rely=0.15,anchor="e")
 
             customtkinter.CTkButton(list_item, text="DELETE", width=70, height=20, corner_radius=0,
                     fg_color="#D74E4E", hover_color="#A92727", text_color="white", command=lambda: self.list_delete_activated(list_name),
                     font=self.master.get_font(size=12, bold=True)).place(relx=0.97, rely=0.15,anchor="e")
-
-    def load_tasks_frame(self, list_name: str):
-        self.lists_frame.destroy()
-        self.welcome_label.destroy()
-
-        self.master.adjust_window_geomtry(extended=True)
-
-        self.tasks_frame = customtkinter.CTkFrame(self.main_frame, width=350, height=550, fg_color="#383736")
-        self.tasks_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
-        self.tasks_frame.pack_propagate(False)
-
-        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_name} | Tasks',
-            font=self.master.get_font(size=25)).pack(pady=30)
-        
-        tasks_back = customtkinter.CTkButton(self.tasks_frame, text="BACK", width=45, corner_radius=0,
-            font=self.master.get_font(size=22, bold=True), fg_color="red", hover_color="dark red",
-            command=lambda: self.reload_list_frame(self.tasks_frame)).place(relx=0.02,rely=0.92,anchor='w')
 
     def list_delete_activated(self, list_name: str):
         print(f'list delete clicked for: {list_name}')
@@ -162,7 +218,7 @@ class App(customtkinter.CTk):
         self.user_data = Data(username)
         
         self.load_fonts()
-        self.list = List(parent=self, username=username)
+        self.list = List(master=self, username=username)
         
         self.change_appearance("Dark")
         self.mainloop()
@@ -176,7 +232,7 @@ class App(customtkinter.CTk):
     
     def seperator(self, master):
         seperator = customtkinter.CTkFrame(master, height=2, width=450, fg_color="white")
-        seperator.place(relx=0.5,rely=0.15,anchor=customtkinter.CENTER)
+        seperator.pack(padx=0.5,pady=0.15)
         return seperator
 
     def load_fonts(self):
