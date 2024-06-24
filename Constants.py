@@ -2,11 +2,17 @@ WindowHeight = 500
 WindowWidth = 700
 ExtendedWindowHeight = 650
 
+App = {
+    'NameMinimumLength': 0,
+    'NameMaximumLength': 15,
+}
+
 DisplayErrors = {
     'Login_InvalidPasswordLength': "Password must be more than 8 characters",
     'Login_InvalidUsername': 'This username is already in use',
-    'App_InvalidListName': 'You already have a list named "{name}"',
-    'App_InvalidListNameLength': 'List name must be between 1-15 characters'
+    'App_InvalidName': 'You already have a {type} named "{name}"',
+    'App_InvalidNameLength': '''{name} must be between \n%s-%s characters'''%(App['NameMinimumLength'], App['NameMaximumLength']),
+    'App_InvalidTaskInputLength': 'Task must have a name and description',
 }
 
 BaseFont = "Arial"
