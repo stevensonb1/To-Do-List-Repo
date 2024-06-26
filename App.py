@@ -6,6 +6,8 @@ import datetime
 import Constants
 import re as Regex
 from Data import Data
+from tkcalendar import Calendar
+from Utility import *
 
 class Task(customtkinter.CTkFrame):
     def __init__(self, master, list, list_name: str):
@@ -16,7 +18,7 @@ class Task(customtkinter.CTkFrame):
 
     def load_tasks_frame(self):
         data = self.master.user_data.get()
-        list_name = data['lists'][self.list_name]['name']
+        list_data = data['lists'][self.list_name]
 
         self.list.lists_frame.destroy()
         self.list.welcome_label.destroy()
@@ -27,16 +29,21 @@ class Task(customtkinter.CTkFrame):
         self.tasks_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.tasks_frame.pack_propagate(False)
 
-        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_name} | Tasks',
+        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_data['name']} | Tasks',
             font=self.master.get_font(size=25)).pack(pady=30)
-        
+                
         tasks_back = customtkinter.CTkButton(self.tasks_frame, text="BACK", width=100, height=5, corner_radius=0,
             font=self.master.get_font(size=15, bold=True), fg_color="red", hover_color="dark red",
             command=lambda: self.list.reload_list_frame(self.tasks_frame)).place(relx=0.02,rely=0.92,anchor='w')
         
         add_task = customtkinter.CTkButton(self.tasks_frame, text="+", height=20, width=65, corner_radius=0,
             font=self.master.get_font(size=18, bold=True), fg_color="#00D1FF", text_color="white",
-            hover_color="#26A6C2", command=lambda: self.load_create_task_menu(list_name)).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
+            hover_color="#26A6C2", command=lambda: self.load_create_task_menu(list_data['name'])).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
+        
+        self.tasks_container = customtkinter.CTkScrollableFrame(self.tasks_frame, width=300, height=350,
+                scrollbar_button_color="#2d2c2c", fg_color="transparent")
+        self.tasks_container.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+        self.load_saved_tasks(list_data)
         
     def load_create_task_menu(self, list_name: str):
         self.tasks_frame.destroy()
@@ -57,26 +64,51 @@ class Task(customtkinter.CTkFrame):
         self.master.seperator(self.create_task_frame)
 
         self.task_name = customtkinter.CTkEntry(self.create_task_frame, corner_radius=0,
-                width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Name",
-                font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
+            width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Name",
+            font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
         self.task_name.place(relx=0.5,rely=0.25,anchor=customtkinter.CENTER)
 
         self.task_description = customtkinter.CTkEntry(self.create_task_frame, corner_radius=0,
-                width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Description",
-                font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
+            width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Description",
+            font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
         self.task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
 
         priority_levels = [str(level+1) for level in range(5)]
 
         self.task_priority = customtkinter.CTkComboBox(self.create_task_frame, values=priority_levels, corner_radius=0,
-                width=150, border_width=0, fg_color="#D9D9D9", text_color="black",
-                font=self.master.get_font(size=25, bold=True))
+            width=150, border_width=0, fg_color="#D9D9D9", text_color="black",
+            font=self.master.get_font(size=25, bold=True))
         self.task_priority.place(relx=0.25,rely=0.45,anchor=customtkinter.CENTER)
+
+        self.calendar = customtkinter.CTkButton(self.create_task_frame, text="Date", corner_radius=0,
+            command=self.load_calendar)
+        self.calendar.place(relx=0.5,rely=0.7,anchor=customtkinter.CENTER)
 
         create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
-            command=self.create_task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
-        
+            command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
+
+    def load_calendar(self):
+        def update_selected_date(event):
+            print(self.task_calendar.get_date())
+
+        self.task_calendar = Calendar(self.create_task_frame, selectmode='day', showeeknumbers=False, cusror='hand2', date_pattern='y-mm-dd')
+        self.task_calendar.pack()
+        self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
+
+    def load_saved_tasks(self, list_data):
+        for task_name, task_data in list_data['tasks'].items():
+            task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color="#5c5b5a")
+            task_item.pack(pady=8)
+            task_item.pack_propagate(False)
+
+            customtkinter.CTkLabel(task_item, text=task_data['name'],
+                font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
+            
+            customtkinter.CTkLabel(task_item, text=split_string(task_data['description'], 25),
+                font=self.master.get_font(family="Roboto", size=15), 
+                justify=customtkinter.LEFT).place(relx=0.02,rely=0.4,anchor="w")
+
     def reload_tasks_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
         self.load_tasks_frame()
@@ -88,7 +120,7 @@ class Task(customtkinter.CTkFrame):
             font=self.master.get_font(), fg_color="transparent")
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
     
-    def create_task_complete_activated(self):
+    def task_complete_activated(self):
         data = self.master.user_data.get()
 
         task_name = self.task_name.get()
@@ -117,8 +149,8 @@ class Task(customtkinter.CTkFrame):
                 'priority': task_priority,
                 'date_created': datetime.datetime.now()
             }
-            print(list_data)
             self.master.user_data.update(data)
+            self.reload_tasks_frame(self.create_task_frame)
 
 class List(customtkinter.CTkFrame):
     def __init__(self, master, username: str):
