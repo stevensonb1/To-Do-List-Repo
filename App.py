@@ -4,17 +4,19 @@ from collections import Counter
 import random
 import datetime
 import Constants
+import re
 from Data import Data
 
 class Task(customtkinter.CTkFrame):
-    def __init__(self, master, list, list_data):
+    def __init__(self, master, list, list_name: str):
         super().__init__(master=master)
         self.list = list
-        self.list_data = list_data
+        self.list_name = list_name
         self.master = master
 
     def load_tasks_frame(self):
-        list_name = self.list_data['name']
+        data = self.master.user_data.get()
+        list_name = data['lists'][self.list_name]['name']
 
         self.list.lists_frame.destroy()
         self.list.welcome_label.destroy()
@@ -54,35 +56,22 @@ class Task(customtkinter.CTkFrame):
 
         self.master.seperator(self.create_task_frame)
 
-        self.name_var = customtkinter.StringVar()
-        self.description_var = customtkinter.StringVar()
-        self.priority_var = customtkinter.StringVar()
+        self.task_name = customtkinter.CTkEntry(self.create_task_frame, corner_radius=0,
+                width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Name",
+                font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
+        self.task_name.place(relx=0.5,rely=0.25,anchor=customtkinter.CENTER)
 
-        def on_entry_focus_in(entry, placeholder):
-            if entry.get() == placeholder:
-                entry.delete(0, 'end')
+        self.task_description = customtkinter.CTkEntry(self.create_task_frame, corner_radius=0,
+                width=400, border_width=0, fg_color="#D9D9D9", text_color="black", placeholder_text="Task Description",
+                font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
+        self.task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
 
-        def on_entry_focus_out(entry, placeholder):
-            if not entry.get():
-                entry.insert(0, placeholder)
-            
-        create_task_name = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="NAME", corner_radius=0,
-            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
-            font=self.master.get_font(size=25, bold=True), textvariable=self.name_var, justify=customtkinter.CENTER)
-        create_task_name.insert(0, "placeholder")
-        create_task_name.bind('<Enter>', lambda e: on_entry_focus_in(create_task_name, "placeholder"))
-        create_task_name.bind('<Leave>', lambda e: on_entry_focus_out(create_task_name, "placeholder"))
-        create_task_name.place(relx=0.5,rely=0.25,anchor=customtkinter.CENTER)
+        priority_levels = [str(level+1) for level in range(5)]
 
-        create_task_description = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="DESCRIPTION", corner_radius=0,
-            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
-            font=self.master.get_font(size=25, bold=True), textvariable=self.description_var, justify=customtkinter.CENTER)
-        create_task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
-
-        create_task_priority = customtkinter.CTkEntry(self.create_task_frame, placeholder_text="PRIORITY", corner_radius=0,
-            width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
-            font=self.master.get_font(size=25, bold=True), textvariable=self.priority_var, justify=customtkinter.CENTER)
-        create_task_priority.place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
+        self.task_priority = customtkinter.CTkComboBox(self.create_task_frame, values=priority_levels, corner_radius=0,
+                width=150, border_width=0, fg_color="#D9D9D9", text_color="black",
+                font=self.master.get_font(size=25, bold=True))
+        self.task_priority.place(relx=0.25,rely=0.45,anchor=customtkinter.CENTER)
 
         create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
@@ -100,15 +89,35 @@ class Task(customtkinter.CTkFrame):
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
     
     def create_task_complete_activated(self):
-        task_name = self.name_var.get()
-        task_description = self.description_var.get()
+        data = self.master.user_data.get()
+        task_name = self.task_name.get()
+        task_description = self.task_description.get()
+        task_priority = self.task_priority.get()
         if len(task_name) == 0 or len(task_description) == 0:
             self.display_task_status("App_InvalidTaskInputLength")
         else:
-            if self.master.check_name_length(task_name):
-                print(task_name)
-            else:
-                self.display_task_status("App_InvalidNameLength")
+            if not self.master.check_name_length(task_name):
+                self.display_task_status("App_InvalidNameLength", task_name="Task Name")
+                return
+            if not self.master.check_input_regex(task_name):
+                self.display_task_status("App_InvalidInputRegex", task_name="Task Name")
+                return
+            
+            list_data = data['lists'][self.list_name]
+            if task_name.lower() in list_data['tasks']:
+                self.display_task_status("App_InvalidName", type="task", task_name=task_name)
+                return
+            
+            list_data['tasks'][task_name.lower()] = {
+                'completed': False,
+                'name': task_name,
+                'description': task_description,
+                'priority': task_priority,
+                'date_created': datetime.datetime.now()
+            }
+            print(list_data)
+            self.master.user_data.update(data)
+                
 
 class List(customtkinter.CTkFrame):
     def __init__(self, master, username: str):
@@ -190,17 +199,19 @@ class List(customtkinter.CTkFrame):
             font=self.master.get_font(), fg_color="transparent")
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
 
-    def create_list_complete_activated(self, name: str):
-        original_name = name
-        name = name.lower()
+    def create_list_complete_activated(self, list_name: str):
         data = self.master.user_data.get()
-        if self.master.check_name_length(name):
-            if not name in data['lists']:
-                data['lists'][name] = {'name': original_name, 'tasks': {}, 'date_created': datetime.datetime.now()}
+        if self.master.check_name_length(list_name):
+            if not list_name.lower() in data['lists']:
+                data['lists'][list_name.lower()] = {
+                    'name': list_name, 
+                    'tasks': {}, 
+                    'date_created': datetime.datetime.now()
+                }
                 self.master.user_data.update(data)
                 self.reload_list_frame(self.create_list_frame)
             else:
-                self.display_list_status("App_InvalidName", type="list", list_name=name)
+                self.display_list_status("App_InvalidName", type="list", list_name=list_name)
         else:
             self.display_list_status("App_InvalidNameLength", type="list")
 
@@ -209,7 +220,7 @@ class List(customtkinter.CTkFrame):
     
     def load_saved_lists(self, data):
         for list_name, list_data in data['lists'].items():
-            task = Task(master=self.master, list=self, list_data=list_data)
+            task = Task(master=self.master, list=self, list_name=list_name)
 
             list_item = customtkinter.CTkFrame(self.lists_container, width=400, height=100, fg_color="#5c5b5a")
             list_item.pack(pady=8)
@@ -247,7 +258,7 @@ class App(customtkinter.CTk):
         
         self.load_fonts()
         self.list = List(master=self, username=username)
-        
+
         self.change_appearance("Dark")
         self.mainloop()
 
@@ -267,6 +278,9 @@ class App(customtkinter.CTk):
         self.default_font = font.nametofont("TkDefaultFont")
         self.default_font.actual()
 
+    def check_input_regex(self, input: str):
+        return re.compile(r"^[^<>/{}[\]~`]*$").match(input)
+    
     def check_name_length(self, name: str):
         return len(name) > Constants.App["NameMinimumLength"] and len(name) < Constants.App["NameMaximumLength"]
 

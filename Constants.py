@@ -13,6 +13,7 @@ DisplayErrors = {
     'App_InvalidName': 'You already have a {type} named "{name}"',
     'App_InvalidNameLength': '''{name} must be between \n%s-%s characters'''%(App['NameMinimumLength'], App['NameMaximumLength']),
     'App_InvalidTaskInputLength': 'Task must have a name and description',
+    'App_InvalidInputRegex': '{name} cannot contain any symbols'
 }
 
 BaseFont = "Arial"
