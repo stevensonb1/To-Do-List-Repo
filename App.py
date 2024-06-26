@@ -4,7 +4,7 @@ from collections import Counter
 import random
 import datetime
 import Constants
-import re
+import re as Regex
 from Data import Data
 
 class Task(customtkinter.CTkFrame):
@@ -90,9 +90,11 @@ class Task(customtkinter.CTkFrame):
     
     def create_task_complete_activated(self):
         data = self.master.user_data.get()
+
         task_name = self.task_name.get()
         task_description = self.task_description.get()
         task_priority = self.task_priority.get()
+
         if len(task_name) == 0 or len(task_description) == 0:
             self.display_task_status("App_InvalidTaskInputLength")
         else:
@@ -117,7 +119,6 @@ class Task(customtkinter.CTkFrame):
             }
             print(list_data)
             self.master.user_data.update(data)
-                
 
 class List(customtkinter.CTkFrame):
     def __init__(self, master, username: str):
@@ -204,7 +205,7 @@ class List(customtkinter.CTkFrame):
         if self.master.check_name_length(list_name):
             if not list_name.lower() in data['lists']:
                 data['lists'][list_name.lower()] = {
-                    'name': list_name, 
+                    'name': list_name,
                     'tasks': {}, 
                     'date_created': datetime.datetime.now()
                 }
@@ -279,7 +280,7 @@ class App(customtkinter.CTk):
         self.default_font.actual()
 
     def check_input_regex(self, input: str):
-        return re.compile(r"^[^<>/{}[\]~`]*$").match(input)
+        return Regex.compile(r"^[^<>/{}[\]~`]*$").match(input)
     
     def check_name_length(self, name: str):
         return len(name) > Constants.App["NameMinimumLength"] and len(name) < Constants.App["NameMaximumLength"]
