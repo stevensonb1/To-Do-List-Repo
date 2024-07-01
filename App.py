@@ -2,7 +2,7 @@ import customtkinter
 from tkinter import font
 from collections import Counter
 import random
-import datetime
+from datetime import datetime
 import Constants
 import re as Regex
 from Data import Data
@@ -10,6 +10,8 @@ from tkcalendar import Calendar
 from Utility import *
 
 class Task(customtkinter.CTkFrame):
+    PRIORITY_LEVELS = [str(level+1) for level in range(5)]
+
     def __init__(self, master, list, list_name: str):
         super().__init__(master=master)
         self.list = list
@@ -73,12 +75,14 @@ class Task(customtkinter.CTkFrame):
             font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
         self.task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
 
-        priority_levels = [str(level+1) for level in range(5)]
-
-        self.task_priority = customtkinter.CTkComboBox(self.create_task_frame, values=priority_levels, corner_radius=0,
+        self.task_priority = customtkinter.CTkComboBox(self.create_task_frame, values=self.PRIORITY_LEVELS, corner_radius=0,
             width=150, border_width=0, fg_color="#D9D9D9", text_color="black",
             font=self.master.get_font(size=25, bold=True))
         self.task_priority.place(relx=0.25,rely=0.45,anchor=customtkinter.CENTER)
+
+        self.task_date = customtkinter.CTkLabel(self.create_task_frame, width=100, height=50,
+            text=datetime.now().strftime("%d/%m/%Y"))
+        self.task_date.place(relx=0.1,rely=0.55,anchor=customtkinter.CENTER)
 
         self.calendar = customtkinter.CTkButton(self.create_task_frame, text="Date", corner_radius=0,
             command=self.load_calendar)
@@ -90,9 +94,10 @@ class Task(customtkinter.CTkFrame):
 
     def load_calendar(self):
         def update_selected_date(event):
-            print(self.task_calendar.get_date())
+            self.task_date.configure(text=self.task_calendar.get_date())
 
-        self.task_calendar = Calendar(self.create_task_frame, selectmode='day', showeeknumbers=False, cusror='hand2', date_pattern='y-mm-dd')
+        self.task_calendar = Calendar(self.create_task_frame, selectmode='day', mindate = datetime.now(),
+            showeeknumbers=False, cusror='hand2', date_pattern='dd/mm/y')
         self.task_calendar.pack()
         self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
 
@@ -113,7 +118,7 @@ class Task(customtkinter.CTkFrame):
         current_displaying_frame.destroy()
         self.load_tasks_frame()
         
-    def display_task_status(self, status_error: str, task_name: str = None, type: str = None):
+    def display_task_status(self, status_error: str, task_name: str = None, type: str = None): 
         if hasattr(self, 'status_error') and self.status_error.winfo_exists():
             self.status_error.destroy()
         self.status_error = customtkinter.CTkLabel(self.create_task_frame, text=Constants.DisplayErrors[status_error].format(name=task_name, type=type),
@@ -147,7 +152,7 @@ class Task(customtkinter.CTkFrame):
                 'name': task_name,
                 'description': task_description,
                 'priority': task_priority,
-                'date_created': datetime.datetime.now()
+                'date_created': datetime.now()
             }
             self.master.user_data.update(data)
             self.reload_tasks_frame(self.create_task_frame)
@@ -239,12 +244,12 @@ class List(customtkinter.CTkFrame):
                 data['lists'][list_name.lower()] = {
                     'name': list_name,
                     'tasks': {}, 
-                    'date_created': datetime.datetime.now()
+                    'date_created': datetime.now()
                 }
                 self.master.user_data.update(data)
                 self.reload_list_frame(self.create_list_frame)
             else:
-                self.display_list_status("App_InvalidName", type="list", list_name=list_name)
+                self.display_list_status("App_InvalidName", name="Name")
         else:
             self.display_list_status("App_InvalidNameLength", type="list")
 
