@@ -8,6 +8,7 @@ import re as Regex
 from Data import Data
 from tkcalendar import Calendar
 from Utility import *
+from PIL import Image
 
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
@@ -31,7 +32,7 @@ class Task(customtkinter.CTkFrame):
         self.tasks_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.tasks_frame.pack_propagate(False)
 
-        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_data['name']} | Tasks',
+        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_data["name"]} | Tasks',
             font=self.master.get_font(size=25)).pack(pady=30)
                 
         tasks_back = customtkinter.CTkButton(self.tasks_frame, text="BACK", width=100, height=5, corner_radius=0,
@@ -80,46 +81,75 @@ class Task(customtkinter.CTkFrame):
             font=self.master.get_font(size=25, bold=True))
         self.task_priority.place(relx=0.25,rely=0.45,anchor=customtkinter.CENTER)
 
+        due_date_title = customtkinter.CTkLabel(self.create_task_frame, width=50, height=20, fg_color="transparent",
+            bg_color="transparent", text="Due Date", text_color="white", justify=customtkinter.LEFT)
+        due_date_title.place(relx=0.1, rely=0.5)
+
         self.task_date = customtkinter.CTkLabel(self.create_task_frame, width=75, height=35, fg_color="#D9D9D9",
             text_color="black", text=datetime.now().strftime("%d/%m/%Y"))
-        self.task_date.place(relx=0.17,rely=0.555,anchor=customtkinter.CENTER)
+        self.task_date.place(relx=0.17,rely=0.6,anchor=customtkinter.CENTER)
 
         current_time = datetime.now()
-        self.time = customtkinter.StringVar(value=f'{current_time.strftime("%I:%M")} {datetime.strptime(current_time.strftime("%H:%M"), "%H:%M").strftime('%p')}')
+        self.valid_time = f'{current_time.strftime("%I:%M")} {datetime.strptime(current_time.strftime("%H:%M"), "%H:%M").strftime("%p")}'
+        self.time = customtkinter.StringVar(value=self.valid_time)
         self.task_time = customtkinter.CTkEntry(self.create_task_frame, width=75, height=35, fg_color="#D9D9D9",
             text_color="black", textvariable=self.time, corner_radius=0)
-        self.task_time.place(relx=0.35,rely=0.555,anchor=customtkinter.CENTER)
+        self.task_time.place(relx=0.35,rely=0.6,anchor=customtkinter.CENTER)
         self.task_time.bind('<Return>', self.validate_time)
+        self.task_time.bind('<KeyRelease>', self.on_key_release)
 
-        self.calendar = customtkinter.CTkButton(self.create_task_frame, text="Date", corner_radius=0,
-            command=self.load_calendar)
-        self.calendar.place(relx=0.5,rely=0.7,anchor=customtkinter.CENTER)
+        calendar_image = customtkinter.CTkImage(
+            light_image=Image.open('images/calendar.png'), dark_image=Image.open('images/calendar.png'))
+
+        self.calendar = customtkinter.CTkButton(self.create_task_frame, text="", corner_radius=0,
+            width=20, image=calendar_image, command=self.load_calendar)
+        self.calendar.place(relx=0.475,rely=0.6,anchor=customtkinter.CENTER)
 
         create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
             command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
-        
+
+    def on_key_release(self, event):
+        widget = event.widget
+        self.format_time(widget)
+
+    def format_time(self, entry):
+        text = entry.get().replace(":", "")
+        if len(text) > 1:
+            text = text[:2] + ":" + text[2:]
+        entry.delete(0, customtkinter.END)
+        entry.insert(0, text)
+
     def validate_time(self, event):
-        format = '%H:%M'
         time = self.time.get()
+        formatted_time = ""
         try:
             time_obj = datetime.strptime(time, '%H:%M')
             formatted_time = time_obj.strftime('%I:%M %p')
-            print(f'Set time to {formatted_time}')
+            self.valid_time = formatted_time
+            self.time.set(value=formatted_time)
         except ValueError:
+            if time == '24:00':
+                formatted_time = "12:00 AM"
+                self.time.set(value=formatted_time)
+                return
             try:
                 time_obj = datetime.strptime(time, '%I:%M %p')
-                print(f'Set time to {time_obj.strftime("%H:%M")}')
+                self.valid_time = formatted_time
+                self.time.set(value=formatted_time)
             except ValueError:
-                print("Invalid time format. Please provide a valid time (e.g., 1430 or 2:30 PM).")
+                self.time.set(value=self.valid_time)
 
     def load_calendar(self):
         def update_selected_date(event):
             self.task_date.configure(text=self.task_calendar.get_date())
 
-        self.task_calendar = Calendar(self.create_task_frame, selectmode='day', mindate = datetime.now(),
+        if hasattr(self, 'task_calendar'):
+            self.task_calendar.destroy()
+
+        self.task_calendar = Calendar(self.create_task_frame, selectmode='day', mindate=datetime.now(),
             showeeknumbers=False, cusror='hand2', date_pattern='dd/mm/y')
-        self.task_calendar.pack()
+        self.task_calendar.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
 
     def load_saved_tasks(self, list_data):
@@ -157,10 +187,10 @@ class Task(customtkinter.CTkFrame):
             self.display_task_status("App_InvalidTaskInputLength")
         else:
             if not self.master.check_name_length(task_name):
-                self.display_task_status("App_InvalidNameLength", task_name="Task Name")
+                self.display_task_status("App_InvalidNameLength", type="Name")
                 return
             if not self.master.check_input_regex(task_name):
-                self.display_task_status("App_InvalidInputRegex", task_name="Task Name")
+                self.display_task_status("App_InvalidInputRegex", type="Name")
                 return
             
             list_data = data['lists'][self.list_name]
@@ -173,6 +203,10 @@ class Task(customtkinter.CTkFrame):
                 'name': task_name,
                 'description': task_description,
                 'priority': task_priority,
+                'due_date': {
+                    'date': self.task_date.cget('text'),
+                    'time': self.time.get()
+                },
                 'date_created': datetime.now()
             }
             self.master.user_data.update(data)
@@ -251,28 +285,28 @@ class List(customtkinter.CTkFrame):
             width=200, font=self.master.get_font(), 
             command=lambda: self.create_list_complete_activated(create_list_name.get())).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
-    def display_list_status(self, status_error: str, list_name: str = None, type: str = None):
+    def display_list_status(self, status_error: str, name: str = None, type: str = None):
         if hasattr(self, 'status_error') and self.status_error.winfo_exists():
             self.status_error.destroy()
-        self.status_error = customtkinter.CTkLabel(self.create_list_frame, text=Constants.DisplayErrors[status_error].format(name=list_name, type=type),
+        self.status_error = customtkinter.CTkLabel(self.create_list_frame, text=Constants.DisplayErrors[status_error].format(name=name, type=type),
             font=self.master.get_font(), fg_color="transparent")
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
 
     def create_list_complete_activated(self, list_name: str):
         data = self.master.user_data.get()
-        if self.master.check_name_length(list_name):
-            if not list_name.lower() in data['lists']:
-                data['lists'][list_name.lower()] = {
-                    'name': list_name,
-                    'tasks': {}, 
-                    'date_created': datetime.now()
-                }
-                self.master.user_data.update(data)
-                self.reload_list_frame(self.create_list_frame)
-            else:
-                self.display_list_status("App_InvalidName", name="Name")
-        else:
+        if not self.master.check_name_length(list_name):
             self.display_list_status("App_InvalidNameLength", type="list")
+            return
+        if list_name.lower() in data['lists']:
+            self.display_list_status("App_InvalidName", type="list", name=list_name)
+            return
+        data['lists'][list_name.lower()] = {
+            'name': list_name,
+            'tasks': {},
+            'date_created': datetime.now()
+        }
+        self.master.user_data.update(data)
+        self.reload_list_frame(self.create_list_frame)
 
     def get_unfinished_tasks_count(self, tasks) -> int:
         return Counter(task_data['completed'] for task_data in tasks.values())[False]
