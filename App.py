@@ -80,9 +80,16 @@ class Task(customtkinter.CTkFrame):
             font=self.master.get_font(size=25, bold=True))
         self.task_priority.place(relx=0.25,rely=0.45,anchor=customtkinter.CENTER)
 
-        self.task_date = customtkinter.CTkLabel(self.create_task_frame, width=100, height=50,
-            text=datetime.now().strftime("%d/%m/%Y"))
-        self.task_date.place(relx=0.1,rely=0.55,anchor=customtkinter.CENTER)
+        self.task_date = customtkinter.CTkLabel(self.create_task_frame, width=75, height=35, fg_color="#D9D9D9",
+            text_color="black", text=datetime.now().strftime("%d/%m/%Y"))
+        self.task_date.place(relx=0.17,rely=0.555,anchor=customtkinter.CENTER)
+
+        current_time = datetime.now()
+        self.time = customtkinter.StringVar(value=f'{current_time.strftime("%I:%M")} {datetime.strptime(current_time.strftime("%H:%M"), "%H:%M").strftime('%p')}')
+        self.task_time = customtkinter.CTkEntry(self.create_task_frame, width=75, height=35, fg_color="#D9D9D9",
+            text_color="black", textvariable=self.time, corner_radius=0)
+        self.task_time.place(relx=0.35,rely=0.555,anchor=customtkinter.CENTER)
+        self.task_time.bind('<Return>', self.validate_time)
 
         self.calendar = customtkinter.CTkButton(self.create_task_frame, text="Date", corner_radius=0,
             command=self.load_calendar)
@@ -91,6 +98,32 @@ class Task(customtkinter.CTkFrame):
         create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
             command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
+        
+    def validate_time(self, event):
+        format = "%H:%M"
+        time = self.time.get()
+        def check(time):
+            is_valid = False
+            try:
+                is_valid = bool(datetime.strptime(time, format))
+            except ValueError:
+                is_valid = False
+            return is_valid
+        
+        if not check(time):
+            time_obj = None
+            try:
+                time_obj = datetime.strptime(self.time.get(), '%H%M')
+            except ValueError:
+                time_obj = None
+            if time_obj == None:
+                print("Set back to old valid time")
+            else:
+                time = time_obj.strftime('%H:%M')
+                if check(time):
+                    print(f'Set time to {time_obj.strftime('%I:%M')} {time_obj.strftime('%p')}')
+        else:
+            print(f'Set time to {time} {datetime.strptime(time, "%H:%M").strftime('%p')}')
 
     def load_calendar(self):
         def update_selected_date(event):
@@ -113,7 +146,7 @@ class Task(customtkinter.CTkFrame):
             customtkinter.CTkLabel(task_item, text=split_string(task_data['description'], 25),
                 font=self.master.get_font(family="Roboto", size=15), 
                 justify=customtkinter.LEFT).place(relx=0.02,rely=0.4,anchor="w")
-
+            
     def reload_tasks_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
         self.load_tasks_frame()
