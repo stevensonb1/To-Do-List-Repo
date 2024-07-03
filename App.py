@@ -100,30 +100,18 @@ class Task(customtkinter.CTkFrame):
             command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
         
     def validate_time(self, event):
-        format = "%H:%M"
+        format = '%H:%M'
         time = self.time.get()
-        def check(time):
-            is_valid = False
+        try:
+            time_obj = datetime.strptime(time, '%H:%M')
+            formatted_time = time_obj.strftime('%I:%M %p')
+            print(f'Set time to {formatted_time}')
+        except ValueError:
             try:
-                is_valid = bool(datetime.strptime(time, format))
+                time_obj = datetime.strptime(time, '%I:%M %p')
+                print(f'Set time to {time_obj.strftime("%H:%M")}')
             except ValueError:
-                is_valid = False
-            return is_valid
-        
-        if not check(time):
-            time_obj = None
-            try:
-                time_obj = datetime.strptime(self.time.get(), '%H%M')
-            except ValueError:
-                time_obj = None
-            if time_obj == None:
-                print("Set back to old valid time")
-            else:
-                time = time_obj.strftime('%H:%M')
-                if check(time):
-                    print(f'Set time to {time_obj.strftime('%I:%M')} {time_obj.strftime('%p')}')
-        else:
-            print(f'Set time to {time} {datetime.strptime(time, "%H:%M").strftime('%p')}')
+                print("Invalid time format. Please provide a valid time (e.g., 1430 or 2:30 PM).")
 
     def load_calendar(self):
         def update_selected_date(event):
