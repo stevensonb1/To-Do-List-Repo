@@ -162,7 +162,7 @@ class Task(customtkinter.CTkFrame):
             priority = int(task_data['priority'])
             prioritised_dict.setdefault(priority, {})[task_name] = task_data
 
-        for level, data in prioritised_dict.items():
+        for level, data in sorted(prioritised_dict.items()):
             if not data:
                 continue
             # Header
@@ -271,9 +271,10 @@ class List(customtkinter.CTkFrame):
         self.lists_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=400, fg_color="#383736")
         self.lists_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
 
-        self.welcome_label = customtkinter.CTkLabel(self.main_frame, text=f'Welcome {self.username}', 
-            font=customtkinter.CTkFont(family="Arial", size=25, weight="normal"))
-        self.welcome_label.pack(pady=10)
+        if not hasattr(self, 'welcome_label') or not self.welcome_label.winfo_exists(): 
+            self.welcome_label = customtkinter.CTkLabel(self.main_frame, text=f'Welcome {self.username}', 
+                font=customtkinter.CTkFont(family="Arial", size=25, weight="normal"))
+            self.welcome_label.pack(pady=10)
 
         create_list = customtkinter.CTkButton(self.lists_frame, text="CREATE LIST", width=200, height=35,
             font=customtkinter.CTkFont(family="Arial", size=15, weight="bold"), 
@@ -285,7 +286,7 @@ class List(customtkinter.CTkFrame):
             self.lists_container.place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
             self.load_saved_lists(data)
         else:
-            lists_empty = customtkinter.CTkLabel(self.lists_frame, text="You have no lists \ncreate one to start setting tasks",
+            customtkinter.CTkLabel(self.lists_frame, text="You have no lists \ncreate one to start setting tasks",
                 font=self.master.get_font()).place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
             
     def reload_list_frame(self, current_displaying_frame):
@@ -302,10 +303,10 @@ class List(customtkinter.CTkFrame):
         self.create_list_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.create_list_frame.pack_propagate(False)
 
-        create_list_title = customtkinter.CTkLabel(self.create_list_frame, text="CREATE LIST",
+        customtkinter.CTkLabel(self.create_list_frame, text="CREATE LIST",
             font=self.master.get_font(size=25)).pack(pady=10)
 
-        create_list_close = customtkinter.CTkButton(self.create_list_frame, text="X", width=35, corner_radius=0,
+        customtkinter.CTkButton(self.create_list_frame, text="X", width=35, corner_radius=0,
             font=self.master.get_font(size=22, bold=True), fg_color="red", hover_color="dark red",
             command=lambda: self.reload_list_frame(self.create_list_frame)).place(relx=0.99,rely=0.07,anchor='e')
 
@@ -368,11 +369,15 @@ class List(customtkinter.CTkFrame):
                     font=self.master.get_font(size=12, bold=True)).place(relx=0.78, rely=0.15,anchor="e")
 
             customtkinter.CTkButton(list_item, text="DELETE", width=70, height=20, corner_radius=0,
-                    fg_color="#D74E4E", hover_color="#A92727", text_color="white", command=lambda: self.list_delete_activated(list_name),
+                    fg_color="#D74E4E", hover_color="#A92727", text_color="white", 
+                    command=lambda list_name=list_name: self.list_delete_activated(list_name),
                     font=self.master.get_font(size=12, bold=True)).place(relx=0.97, rely=0.15,anchor="e")
 
     def list_delete_activated(self, list_name: str):
-        print(f'list delete clicked for: {list_name}')
+        data = self.master.user_data.get()
+        data['lists'].pop(list_name, None)
+        self.master.user_data.update(data)
+        self.reload_list_frame(self.lists_frame)
 
 class App(customtkinter.CTk):
     def __init__(self, username: str):
