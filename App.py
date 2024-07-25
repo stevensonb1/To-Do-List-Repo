@@ -50,10 +50,14 @@ class Task(customtkinter.CTkFrame):
             font=self.master.get_font(size=18, bold=True), fg_color="#00D1FF", text_color="white",
             hover_color="#26A6C2", command=lambda: self.load_create_task_menu(list_data['name'])).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
         
-        self.tasks_container = customtkinter.CTkScrollableFrame(self.tasks_frame, width=300, height=350,
-                scrollbar_button_color="#2d2c2c", fg_color="transparent")
-        self.tasks_container.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
-        self.load_saved_tasks(list_data)
+        if list_data['tasks']:
+            self.tasks_container = customtkinter.CTkScrollableFrame(self.tasks_frame, width=300, height=350,
+                    scrollbar_button_color="#2d2c2c", fg_color="transparent")
+            self.tasks_container.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+            self.load_saved_tasks(list_data)
+        else:
+             customtkinter.CTkLabel(self.tasks_frame, text="You have no tasks",
+                font=self.master.get_font()).place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
         
     def load_create_task_menu(self, list_name: str):
         self.tasks_frame.destroy()
@@ -103,46 +107,26 @@ class Task(customtkinter.CTkFrame):
             text_color="black", textvariable=self.time, corner_radius=0)
         self.task_time.place(relx=0.35,rely=0.6,anchor=customtkinter.CENTER)
         self.task_time.bind('<Return>', self.validate_time)
-        self.task_time.bind('<KeyRelease>', self.on_key_release)
 
         self.calendar = customtkinter.CTkButton(self.create_task_frame, text="", corner_radius=0,
             width=20, image=self.CALENDAR_ICON, command=self.load_calendar)
         self.calendar.place(relx=0.475,rely=0.6,anchor=customtkinter.CENTER)
 
-        create_task_complete = customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
+        customtkinter.CTkButton(self.create_task_frame, text="COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
             command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
-    def on_key_release(self, event):
-        widget = event.widget
-        self.format_time(widget)
-
-    def format_time(self, entry):
-        text = entry.get().replace(":", "")
-        if len(text) > 1:
-            text = text[:2] + ":" + text[2:]
-        entry.delete(0, customtkinter.END)
-        entry.insert(0, text)
-
     def validate_time(self, event):
-        time = self.time.get()
-        formatted_time = ""
-        try:
-            time_obj = datetime.strptime(time, '%H:%M')
-            formatted_time = time_obj.strftime('%I:%M %p')
-            self.valid_time = formatted_time
-            self.time.set(value=formatted_time)
-        except ValueError:
-            if time == '24:00':
-                formatted_time = "12:00 AM"
-                self.time.set(value=formatted_time)
-                return
+        time_str = self.time.get().upper()
+        if "AM" in time_str or "PM" in time_str:
             try:
-                time_obj = datetime.strptime(time, '%I:%M %p')
+                formatted_time = datetime.strptime(time_str, "%I:%M %p").strftime("%I:%M %p")
                 self.valid_time = formatted_time
                 self.time.set(value=formatted_time)
             except ValueError:
                 self.time.set(value=self.valid_time)
+        else:
+            self.time.set(value=self.valid_time)
 
     def load_calendar(self):
         def update_selected_date(event):

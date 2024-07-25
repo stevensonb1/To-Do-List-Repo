@@ -110,7 +110,7 @@ class Login(customtkinter.CTk):
             placeholder_text="Enter Username",
             font=("Helvetica", 14),                            
         )
-        self.account_username.pack()
+        self.account_username.pack(pady=10)
         self.account_password = customtkinter.CTkEntry(self.content_frame,
             placeholder_text="Enter Password",
             font=("Helvetica", 14),
