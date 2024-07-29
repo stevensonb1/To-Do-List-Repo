@@ -26,6 +26,15 @@ class Task(customtkinter.CTkFrame):
         self.list_name = list_name
         self.master = master
 
+    def get_completed_tasks(self) -> dict:
+        data = self.master.user_data.get()
+        list_data = data['lists'][self.list_name]
+        completed_tasks = {}
+        for task_name, task_data in list_data['tasks'].items():
+            if task_data['completed']:
+                completed_tasks[task_name] = task_data
+        return completed_tasks
+
     def load_tasks_frame(self):
         data = self.master.user_data.get()
         list_data = data['lists'][self.list_name]
@@ -177,7 +186,16 @@ class Task(customtkinter.CTkFrame):
                 customtkinter.CTkButton(task_item, text="", image=self.DELETE_ICON, fg_color="red",
                     text_color="black", corner_radius=0, width=15, 
                     height=5).place(relx=0.95, rely=0.1, anchor=customtkinter.CENTER)
-            
+        self.load_completed_tasks()
+
+    def load_completed_tasks(self):
+        completed_tasks = self.get_completed_tasks()
+        if not completed_tasks:
+            return
+        customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
+                text=f'COMPLETED', font=self.master.get_font(size=15, bold=True)).pack()
+        customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)    
+        
     def reload_tasks_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
         self.load_tasks_frame()
@@ -219,7 +237,7 @@ class Task(customtkinter.CTkFrame):
                 return
             
             list_data['tasks'][task_name.lower()] = {
-                'completed': False,
+                'completed': True,
                 'name': task_name,
                 'description': task_description,
                 'priority': task_priority,

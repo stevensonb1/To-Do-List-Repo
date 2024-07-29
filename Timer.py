@@ -1,6 +1,7 @@
 import threading
 from datetime import datetime
 import time
+import random
 
 class Timer(threading.Thread):
     def __init__(self, date: str = None, time: str = None, name: str = None, fn = None):
