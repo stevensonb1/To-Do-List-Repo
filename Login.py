@@ -77,6 +77,7 @@ class Login(customtkinter.CTk):
                 self.display_status_error('Login_InvalidUsername')
             else:
                 keyring.set_password(service_id, username, password)
+                App(username)
         
     def delete_current_page(self):
         [widget.destroy() for widget in self.content_frame.winfo_children()]
