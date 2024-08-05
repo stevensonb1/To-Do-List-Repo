@@ -8,8 +8,8 @@ import re as Regex
 from Data import Data
 from Timer import Timer
 from tkcalendar import Calendar
-from Utility import *
 from PIL import Image
+import Utility as Util, Loading, pywinstyles
 
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
@@ -19,12 +19,23 @@ class Task(customtkinter.CTkFrame):
         light_image=Image.open('images/trash.png'), dark_image=Image.open('images/trash.png'))
     CALENDAR_ICON = customtkinter.CTkImage(
         light_image=Image.open('images/calendar.png'), dark_image=Image.open('images/calendar.png'))
+    LOADING_ICON = customtkinter.CTkImage(
+        light_image=Image.open("images/loading.png"), dark_image=Image.open("images/loading.png"))
 
     def __init__(self, master, list, list_name: str):
         super().__init__(master=master)
         self.list = list
         self.list_name = list_name
         self.master = master
+
+    def get_task_data(self, task_name: str):
+        data = self.master.user_data.get()
+        list_data = data['lists'][self.list_name]
+        if not list_data:
+            return
+        task_data = list_data['tasks'][task_name]
+        if task_data:
+            return data, task_data
 
     def get_completed_tasks(self) -> dict:
         data = self.master.user_data.get()
@@ -149,12 +160,61 @@ class Task(customtkinter.CTkFrame):
         self.task_calendar.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
 
+    def create_task_template(self, task_name: str, task_data: dict):
+        completed_check = customtkinter.IntVar()
+        completed_check.set(value=task_data['completed'])
+
+        def task_completed():
+            data, task_data = self.get_task_data(task_name)
+            task_data['completed'] = completed_check.get() == 1
+            self.master.user_data.update(data)
+            self.reload_tasks_frame(self.tasks_frame)
+
+        task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color="#5c5b5a")
+        task_item.pack(pady=8)
+        task_item.pack_propagate(False)
+
+        customtkinter.CTkLabel(task_item, text=task_data['name'],
+            font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
+        
+        customtkinter.CTkLabel(task_item, text=Util.split_string(task_data['description'], 25),
+            font=self.master.get_font(family="Roboto", size=15), 
+            justify=customtkinter.LEFT).place(relx=0.02,rely=0.4,anchor="w")
+        
+        date_obj = datetime.strptime(task_data['due_date']['date'], "%d/%m/%Y")
+        customtkinter.CTkLabel(task_item, 
+            text=date_obj.strftime("%b %d")).place(relx=0.6, rely=0.1, anchor=customtkinter.CENTER)
+        
+        customtkinter.CTkButton(task_item, text="EDIT", fg_color="light blue",
+            text_color="black", corner_radius=0, width=50, 
+            height=10).place(relx=0.8, rely=0.1, anchor=customtkinter.CENTER)
+        
+        customtkinter.CTkButton(task_item, text="", image=self.DELETE_ICON, fg_color="red",
+            text_color="black", corner_radius=0, width=15, 
+            height=5).place(relx=0.95, rely=0.1, anchor=customtkinter.CENTER)
+        
+        customtkinter.CTkCheckBox(task_item, text="", fg_color="gray",
+            hover_color="green", variable=completed_check, 
+            command=task_completed).place(relx=0.9,rely=0.83, anchor=customtkinter.W)
+
     def load_saved_tasks(self, list_data):
         prioritised_dict = {}
         for task_name, task_data in list_data['tasks'].items():
+            if task_data['completed'] == True:
+                continue
             priority = int(task_data['priority'])
             prioritised_dict.setdefault(priority, {})[task_name] = task_data
+        
+        loading_label = customtkinter.CTkLabel(self.tasks_frame, text='',
+            width=100,height=100,bg_color="transparent", fg_color="transparent", image=self.LOADING_ICON)
+        loading_label.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+        pywinstyles.set_opacity(loading_label, color="#383736")
 
+        def finish_loading():
+            loading_label.destroy()
+
+        on_finish = Loading.load_gif(loading_label, finish_loading)
+        
         for level, data in sorted(prioritised_dict.items()):
             if not data:
                 continue
@@ -164,28 +224,7 @@ class Task(customtkinter.CTkFrame):
             customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)
             # Tasks
             for task_name, task_data in data.items():
-                task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color="#5c5b5a")
-                task_item.pack(pady=8)
-                task_item.pack_propagate(False)
-
-                customtkinter.CTkLabel(task_item, text=task_data['name'],
-                    font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
-                
-                customtkinter.CTkLabel(task_item, text=split_string(task_data['description'], 25),
-                    font=self.master.get_font(family="Roboto", size=15), 
-                    justify=customtkinter.LEFT).place(relx=0.02,rely=0.4,anchor="w")
-                
-                date_obj = datetime.strptime(task_data['due_date']['date'], "%d/%m/%Y")
-                customtkinter.CTkLabel(task_item, 
-                    text=date_obj.strftime("%b %d")).place(relx=0.6, rely=0.1, anchor=customtkinter.CENTER)
-                
-                customtkinter.CTkButton(task_item, text="EDIT", fg_color="light blue",
-                    text_color="black", corner_radius=0, width=50, 
-                    height=10).place(relx=0.8, rely=0.1, anchor=customtkinter.CENTER)
-                
-                customtkinter.CTkButton(task_item, text="", image=self.DELETE_ICON, fg_color="red",
-                    text_color="black", corner_radius=0, width=15, 
-                    height=5).place(relx=0.95, rely=0.1, anchor=customtkinter.CENTER)
+                self.create_task_template(task_name, task_data)
         self.load_completed_tasks()
 
     def load_completed_tasks(self):
@@ -194,7 +233,9 @@ class Task(customtkinter.CTkFrame):
             return
         customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
                 text=f'COMPLETED', font=self.master.get_font(size=15, bold=True)).pack()
-        customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)    
+        customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)
+        for task_name, task_data in completed_tasks.items():
+            self.create_task_template(task_name, task_data)
         
     def reload_tasks_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
@@ -237,7 +278,7 @@ class Task(customtkinter.CTkFrame):
                 return
             
             list_data['tasks'][task_name.lower()] = {
-                'completed': True,
+                'completed': False,
                 'name': task_name,
                 'description': task_description,
                 'priority': task_priority,
@@ -334,7 +375,7 @@ class List(customtkinter.CTkFrame):
     def create_list_complete_activated(self, list_name: str):
         data = self.master.user_data.get()
         if not self.master.check_name_length(list_name):
-            self.display_list_status("App_InvalidNameLength", type="list")
+            self.display_list_status("App_InvalidNameLength", name="List")
             return
         if list_name.lower() in data['lists']:
             self.display_list_status("App_InvalidName", type="list", name=list_name)
