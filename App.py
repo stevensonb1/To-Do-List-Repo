@@ -1,7 +1,6 @@
 import customtkinter
 from tkinter import font
 from collections import Counter
-import random
 from datetime import datetime
 import Constants
 import re as Regex
@@ -9,7 +8,8 @@ from Data import Data
 from Timer import Timer
 from tkcalendar import Calendar
 from PIL import Image
-import Utility as Util, Loading, pywinstyles
+from Loading import Loading
+import Utility as Util, pywinstyles, random
 
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
@@ -210,10 +210,9 @@ class Task(customtkinter.CTkFrame):
         loading_label.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         pywinstyles.set_opacity(loading_label, color="#383736")
 
-        def finish_loading():
-            loading_label.destroy()
-
-        on_finish = Loading.load_gif(loading_label, finish_loading)
+        loading = Loading(loading_label)
+        loading.daemon = True
+        loading.start()
         
         for level, data in sorted(prioritised_dict.items()):
             if not data:
