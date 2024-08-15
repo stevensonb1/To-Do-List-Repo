@@ -229,6 +229,7 @@ class Task(customtkinter.CTkFrame):
             # Tasks
             for task_name, task_data in data.items():
                 self.create_task_template(task_name, task_data)
+                
         self.load_completed_tasks()
 
         def load_widgets():
@@ -243,7 +244,7 @@ class Task(customtkinter.CTkFrame):
 
             loading.end_loading()
 
-        threading.Timer(1, load_widgets).start()
+        threading.Timer(0.1*len(list_data['tasks']), load_widgets).start()
 
     def load_completed_tasks(self):
         completed_tasks = self.get_completed_tasks()
