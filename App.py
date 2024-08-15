@@ -9,7 +9,7 @@ from Timer import Timer
 from tkcalendar import Calendar
 from PIL import Image
 from Loading import Loading
-import Utility as Util, pywinstyles, random
+import Utility as Util, pywinstyles, random, time, threading
 
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
@@ -73,7 +73,6 @@ class Task(customtkinter.CTkFrame):
         if list_data['tasks']:
             self.tasks_container = customtkinter.CTkScrollableFrame(self.tasks_frame, width=300, height=350,
                     scrollbar_button_color="#2d2c2c", fg_color="transparent")
-            self.tasks_container.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
             self.load_saved_tasks(list_data)
         else:
              customtkinter.CTkLabel(self.tasks_frame, text="You have no tasks",
@@ -171,7 +170,8 @@ class Task(customtkinter.CTkFrame):
             self.reload_tasks_frame(self.tasks_frame)
 
         task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color="#5c5b5a")
-        task_item.pack(pady=8)
+        self.hidden_widgets.append([task_item, 8])
+       # task_item.pack(pady=8)
         task_item.pack_propagate(False)
 
         customtkinter.CTkLabel(task_item, text=task_data['name'],
@@ -205,6 +205,9 @@ class Task(customtkinter.CTkFrame):
             priority = int(task_data['priority'])
             prioritised_dict.setdefault(priority, {})[task_name] = task_data
         
+        has_loaded = False
+        self.hidden_widgets = []
+        
         loading_label = customtkinter.CTkLabel(self.tasks_frame, text='',
             width=100,height=100,bg_color="transparent", fg_color="transparent", image=self.LOADING_ICON)
         loading_label.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
@@ -213,26 +216,44 @@ class Task(customtkinter.CTkFrame):
         loading = Loading(loading_label)
         loading.daemon = True
         loading.start()
-        
+
         for level, data in sorted(prioritised_dict.items()):
             if not data:
                 continue
             # Header
-            customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
-                text=f'LEVEL {level}', font=self.master.get_font(size=15, bold=True)).pack()
-            customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)
+            header = customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
+                text=f'LEVEL {level}', font=self.master.get_font(size=15, bold=True))
+            self.hidden_widgets.append(header)
+            tasks = customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white")
+            self.hidden_widgets.append([tasks, 2])
             # Tasks
             for task_name, task_data in data.items():
                 self.create_task_template(task_name, task_data)
         self.load_completed_tasks()
 
+        def load_widgets():
+            # Tasks have finished loading
+            self.tasks_container.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
+
+            for widget in self.hidden_widgets:
+                if type(widget) is list:
+                    widget[0].pack(pady=widget[1])
+                else:
+                    widget.pack()
+
+            loading.end_loading()
+
+        threading.Timer(1, load_widgets).start()
+
     def load_completed_tasks(self):
         completed_tasks = self.get_completed_tasks()
         if not completed_tasks:
             return
-        customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
-                text=f'COMPLETED', font=self.master.get_font(size=15, bold=True)).pack()
-        customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white").pack(pady=2)
+        header = customtkinter.CTkLabel(self.tasks_container, width=400, height=20,
+                text=f'COMPLETED', font=self.master.get_font(size=15, bold=True))
+        self.hidden_widgets.append(header)
+        tasks = customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white")
+        self.hidden_widgets.append([tasks, 2])
         for task_name, task_data in completed_tasks.items():
             self.create_task_template(task_name, task_data)
         
@@ -267,9 +288,8 @@ class Task(customtkinter.CTkFrame):
                 self.display_task_status("App_InvalidInputRegex", type="Name")
                 return
             
-            timer = Timer(date=self.task_date.cget('text'), time=self.time.get(),
-                name=task_name, fn=self.on_task_due)
-            timer.start()
+            Timer(date=self.task_date.cget('text'), time=self.time.get(),
+                name=task_name, fn=self.on_task_due).start()
 
             list_data = data['lists'][self.list_name]
             if task_name.lower() in list_data['tasks']:
