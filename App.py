@@ -14,6 +14,14 @@ import Utility as Util, pywinstyles, random, time, threading
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
 
+    STATE_COLOURS =  [
+        "#5c5b5a", # Not due
+        "#CCCC00", # Due date getting closer
+        "#FF8C00", # Due date very close
+        "#8B0000", # Is due or pass due date
+        "#006400", # Completed
+    ]
+
     # Preloaded images
     DELETE_ICON = customtkinter.CTkImage(
         light_image=Image.open('images/trash.png'), dark_image=Image.open('images/trash.png'))
@@ -37,6 +45,30 @@ class Task(customtkinter.CTkFrame):
         if task_data:
             return data, task_data
 
+    def get_task_state(self, task_name: str) -> int:
+        data, task_data = self.get_task_data(task_name)
+        # if task is already complete then returns with highest state
+        if task_data['completed']:
+            return len(self.STATE_COLOURS)-1
+        due_date = task_data['due_date']
+
+        due_datetime_str = f"{due_date['date']} {due_date['time']}"
+        due_datetime = datetime.strptime(due_datetime_str, "%d/%m/%Y %I:%M %p")
+
+        current_datetime = datetime.now()
+        time_diff = (due_datetime - current_datetime).total_seconds()
+
+        state = None
+        if time_diff > 86400: # more than a day
+            state = 1
+        elif 3600 < time_diff <= 86400: # between 1 hour and 1 day
+            state = 2
+        elif 0 < time_diff <= 3600: # less than 1 hour
+            state = 3
+        else: # past due date
+            state = 4
+        return state-1
+    
     def get_completed_tasks(self) -> dict:
         data = self.master.user_data.get()
         list_data = data['lists'][self.list_name]
@@ -163,15 +195,16 @@ class Task(customtkinter.CTkFrame):
         completed_check = customtkinter.IntVar()
         completed_check.set(value=task_data['completed'])
 
+        task_state = self.get_task_state(task_name)
+
         def task_completed():
             data, task_data = self.get_task_data(task_name)
             task_data['completed'] = completed_check.get() == 1
             self.master.user_data.update(data)
             self.reload_tasks_frame(self.tasks_frame)
 
-        task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color="#5c5b5a")
+        task_item = customtkinter.CTkFrame(self.tasks_container, width=400, height=100, fg_color=self.STATE_COLOURS[task_state])
         self.hidden_widgets.append([task_item, 8])
-       # task_item.pack(pady=8)
         task_item.pack_propagate(False)
 
         customtkinter.CTkLabel(task_item, text=task_data['name'],
@@ -190,12 +223,19 @@ class Task(customtkinter.CTkFrame):
             height=10).place(relx=0.8, rely=0.1, anchor=customtkinter.CENTER)
         
         customtkinter.CTkButton(task_item, text="", image=self.DELETE_ICON, fg_color="red",
-            text_color="black", corner_radius=0, width=15, 
+            text_color="black", corner_radius=0, width=15, command=lambda: self.task_delete_activated(task_name),
             height=5).place(relx=0.95, rely=0.1, anchor=customtkinter.CENTER)
         
         customtkinter.CTkCheckBox(task_item, text="", fg_color="gray",
             hover_color="green", variable=completed_check, 
             command=task_completed).place(relx=0.9,rely=0.83, anchor=customtkinter.W)
+
+    def task_delete_activated(self, task_name: str):
+        data = self.master.user_data.get()
+        list_data = data['lists'][self.list_name]
+        list_data['tasks'].pop(task_name, None)
+        self.master.user_data.update(data)
+        self.reload_tasks_frame(self.tasks_frame)
 
     def load_saved_tasks(self, list_data):
         prioritised_dict = {}
