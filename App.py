@@ -9,7 +9,8 @@ from Timer import Timer
 from tkcalendar import Calendar
 from PIL import Image
 from Loading import Loading
-import Utility as Util, pywinstyles, random, time, threading
+from queue import Queue
+import Utility as util, pywinstyles, random, time, threading
 
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
@@ -37,17 +38,17 @@ class Task(customtkinter.CTkFrame):
         self.master = master
 
     def get_task_data(self, task_name: str = None):
-        data = self.master.user_data.get()
-        list_data = data['lists'][self.list_name]
+        # returns user_data, task_data, task_id
+        user_data = self.master.user_data.get()
+        list_data = user_data['lists'][self.list_name]
         if not list_data:
             return
-        task_data = list_data['tasks'][task_name]
-        if task_data:
-            return data, task_data
+        for task_id, task_data in list_data['tasks'].items():
+            if task_data.get('name') == task_name:
+                return user_data, task_data, task_id
 
     def get_task_state(self, task_name: str) -> int:
-        data, task_data = self.get_task_data(task_name)
-        # if task is already complete then returns with highest state
+        data, task_data, *other = self.get_task_data(task_name)
         if task_data['completed']:
             return len(self.STATE_COLOURS)-1
         due_date = task_data['due_date']
@@ -119,11 +120,11 @@ class Task(customtkinter.CTkFrame):
         self.modify_task_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.modify_task_frame.pack_propagate(False)
 
-        data, task_data = task_name and self.get_task_data(task_name) or {}, {}
+        data, task_data, task_id = self.get_task_data(task_name) if task_name else ({}, {}, None)
         due_date = task_data and task_data['due_date']
 
         task_description = task_data and task_data['description']
-        priority_level = task_data and task_data['priority_level']
+        priority_level = task_data and task_data['priority']
         task_date, task_time = due_date and due_date['date'], due_date and due_date['time']
 
         # Title
@@ -137,15 +138,24 @@ class Task(customtkinter.CTkFrame):
 
         self.master.seperator(self.modify_task_frame)
 
+        placeholder_text_color = task_name and "black" or "grey"
+
+        task_name_var = customtkinter.StringVar(value=task_name)
+        task_description_var = customtkinter.StringVar(value=task_description)
+
         self.task_name = customtkinter.CTkEntry(self.modify_task_frame, corner_radius=0,
             width=400, border_width=0, fg_color="#D9D9D9", text_color="black", 
+            textvariable=task_name and task_name_var,
             placeholder_text=task_name or "Task Name",
+            placeholder_text_color=placeholder_text_color,
             font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
         self.task_name.place(relx=0.5,rely=0.25,anchor=customtkinter.CENTER)
 
         self.task_description = customtkinter.CTkEntry(self.modify_task_frame, corner_radius=0,
-            width=400, border_width=0, fg_color="#D9D9D9", text_color="black", 
-            placeholder_text=task_description or "Task Description",
+            width=400, border_width=0, fg_color="#D9D9D9", text_color="black",  
+            textvariable=task_name and task_description_var,
+            placeholder_text=task_description or "Task Description", 
+            placeholder_text_color=placeholder_text_color,
             font=self.master.get_font(size=25, bold=True), justify=customtkinter.CENTER)
         self.task_description.place(relx=0.5,rely=0.35,anchor=customtkinter.CENTER)
 
@@ -182,7 +192,8 @@ class Task(customtkinter.CTkFrame):
         # Button to create or save information about the task
         customtkinter.CTkButton(self.modify_task_frame, text=task_name and "SAVE" or "COMPLETE", text_color="white",
             width=200, font=self.master.get_font(),
-            command=self.task_complete_activated).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
+            command=lambda: self.task_complete_activated(task_id)
+            ).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
     def validate_time(self, event):
         time_str = self.time.get().upper()
@@ -208,14 +219,16 @@ class Task(customtkinter.CTkFrame):
         self.task_calendar.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
 
-    def create_task_template(self, task_name: str, task_data: dict):
+    def create_task_template(self, task_data: dict):
+        task_name = task_data['name']
+
         completed_check = customtkinter.IntVar()
         completed_check.set(value=task_data['completed'])
 
         task_state = self.get_task_state(task_name)
 
         def task_completed():
-            data, task_data = self.get_task_data(task_name)
+            data, task_data, *other = self.get_task_data(task_name)
             task_data['completed'] = completed_check.get() == 1
             self.master.user_data.update(data)
             self.reload_tasks_frame(self.tasks_frame)
@@ -227,7 +240,7 @@ class Task(customtkinter.CTkFrame):
         customtkinter.CTkLabel(task_item, text=task_data['name'],
             font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
         
-        customtkinter.CTkLabel(task_item, text=Util.split_string(task_data['description'], 25),
+        customtkinter.CTkLabel(task_item, text=util.split_string(task_data['description'], 25),
             font=self.master.get_font(family="Roboto", size=15), 
             justify=customtkinter.LEFT).place(relx=0.02,rely=0.4,anchor="w")
         
@@ -248,9 +261,9 @@ class Task(customtkinter.CTkFrame):
             command=task_completed).place(relx=0.9,rely=0.83, anchor=customtkinter.W)
 
     def task_delete_activated(self, task_name: str):
-        data = self.master.user_data.get()
+        data, task_data, task_id = self.get_task_data(task_name)
         list_data = data['lists'][self.list_name]
-        list_data['tasks'].pop(task_name, None)
+        list_data['tasks'].pop(task_id, None)
         self.master.user_data.update(data)
         self.reload_tasks_frame(self.tasks_frame)
 
@@ -262,7 +275,6 @@ class Task(customtkinter.CTkFrame):
             priority = int(task_data['priority'])
             prioritised_dict.setdefault(priority, {})[task_name] = task_data
         
-        has_loaded = False
         self.hidden_widgets = []
         
         loading_label = customtkinter.CTkLabel(self.tasks_frame, text='',
@@ -285,7 +297,7 @@ class Task(customtkinter.CTkFrame):
             self.hidden_widgets.append([tasks, 2])
             # Tasks
             for task_name, task_data in data.items():
-                self.create_task_template(task_name, task_data)
+                self.create_task_template(task_data)
                 
         self.load_completed_tasks()
 
@@ -313,8 +325,8 @@ class Task(customtkinter.CTkFrame):
         self.hidden_widgets.append(header)
         tasks = customtkinter.CTkFrame(self.tasks_container, width=400, height=2, fg_color="white")
         self.hidden_widgets.append([tasks, 2])
-        for task_name, task_data in completed_tasks.items():
-            self.create_task_template(task_name, task_data)
+        for task_data in completed_tasks.values():
+            self.create_task_template(task_data)
         
     def reload_tasks_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
@@ -330,7 +342,7 @@ class Task(customtkinter.CTkFrame):
     def on_task_due(self, task_name: str):
         print(f'{task_name} is due')
 
-    def task_complete_activated(self):
+    def task_complete_activated(self, unique_id: str = None):
         data = self.master.user_data.get()
 
         task_name = self.task_name.get()
@@ -343,20 +355,23 @@ class Task(customtkinter.CTkFrame):
             if not self.master.check_name_length(task_name):
                 self.display_task_status("App_InvalidNameLength", type="Name")
                 return
-            if not self.master.check_input_regex(task_name):
-                self.display_task_status("App_InvalidInputRegex", type="Name")
+            if not self.master.is_valid(task_name):
+                self.display_task_status("App_InvalidInput", type="Name")
                 return
             
-            Timer(date=self.task_date.cget('text'), time=self.time.get(),
-                name=task_name, fn=self.on_task_due).start()
-
             list_data = data['lists'][self.list_name]
-            if task_name.lower() in list_data['tasks']:
-                self.display_task_status("App_InvalidName", type="task", task_name=task_name)
-                return
+
+            if not unique_id:
+                Timer(date=self.task_date.cget('text'), time=self.time.get(),
+                    name=task_name, fn=self.master.task_due_notification).start()
+
+                if any(sub_dic.get('name') == task_name.lower() for sub_dic in list_data['tasks'].values()):
+                    self.display_task_status("App_InvalidName", type="task", task_name=task_name)
+                    return
             
-            list_data['tasks'][task_name.lower()] = {
-                'completed': False,
+            completed_state = unique_id and list_data['tasks'][unique_id]['completed']
+            list_data['tasks'][unique_id or util.generate_unique_id()] = {
+                'completed': completed_state or False,
                 'name': task_name,
                 'description': task_description,
                 'priority': task_priority,
@@ -374,6 +389,13 @@ class List(customtkinter.CTkFrame):
         super().__init__(master=master)
         self.username = username
         self.master = master
+
+        data = self.master.user_data.get()
+        for list_data in data['lists'].values():
+            for task_data in list_data['tasks'].values():
+                due_date = task_data['due_date']
+                Timer(date=due_date['date'], time=due_date['time'],
+                    name=task_data['name'], fn=self.master.task_due_notification).start()
 
         self.load_list_menu()
 
@@ -481,7 +503,7 @@ class List(customtkinter.CTkFrame):
                     font=self.master.get_font(family="Roboto", size=17, bold=True)).place(relx=0.02,rely=0.15,anchor="w")
 
             unfinished_tasks_count = list_data['tasks'] and self.get_unfinished_tasks_count(list_data['tasks'])
-            customtkinter.CTkLabel(list_item, text=not unfinished_tasks_count and "You have no tasks" 
+            customtkinter.CTkLabel(list_item, text=isinstance(unfinished_tasks_count, dict) and "You have no tasks" 
                     or (unfinished_tasks_count > 0 and f'{unfinished_tasks_count} Unfinished Tasks' or 'All tasks completed'), 
                     font=self.master.get_font(size=16)).place(relx=0.02,rely=0.85,anchor="w")
 
@@ -500,6 +522,39 @@ class List(customtkinter.CTkFrame):
         self.master.user_data.update(data)
         self.reload_list_frame(self.lists_frame)
 
+class Notification(customtkinter.CTk):
+    DISPLAY_TIME = 5
+
+    def __init__(self, root):
+        super().__init__()
+        self.root = root
+        self.queue = Queue()
+        self.is_displaying = False
+
+        self.notification_frame = customtkinter.CTkFrame(root, width=100, height=50,
+            bg_color="transparent", fg_color="transparent")
+        self.notification_frame.pack(side=customtkinter.BOTTOM, fill=customtkinter.X)
+        self.notification_label = customtkinter.CTkLabel(self.notification_frame, 
+            text="", height=40, font=('Helvetica', 20, 'bold'))
+        self.notification_label.pack()
+
+    def show_notification(self, message: str):
+        self.queue.put(message)
+        if not self.is_displaying:
+            self.display_next_notification()
+    
+    def display_next_notification(self):
+        if not self.queue.empty():
+            self.is_displaying = True
+            message = self.queue.get()
+            self.notification_label.configure(text=message)
+            self.notification_frame.after(self.DISPLAY_TIME*1000, self.hide_notification)
+
+    def hide_notification(self):
+        self.notification_label.configure(text="")
+        self.is_displaying = False
+        self.display_next_notification()
+
 class App(customtkinter.CTk):
     def __init__(self, username: str):
         super().__init__()
@@ -509,20 +564,36 @@ class App(customtkinter.CTk):
         self.adjust_window_geomtry()
         self.resizable(width=False, height=False)
 
+        # runtime events
+        self.notification_ready = threading.Event()
+
         self.user_data = Data(username)
         
         self.load_fonts()
         self.list = List(master=self, username=username)
+        
+        self.notification = Notification(self)
+        self.notification_ready.set()
 
         self.change_appearance("Dark")
         self.mainloop()
 
+    def task_due_notification(self, task_name: str):
+        # waits for notification ready event to fire
+        # calls show_nofication method to display GUI
+        # that a task is due
+        def notification_async():
+            self.notification_ready.wait()
+            self.notification.show_notification(f'"{task_name}" is due')
+        threading.Thread(target=notification_async, daemon=True).start()
+
     def adjust_window_geomtry(self, extended: bool = False):
-        self.geometry(f'{Constants.WindowWidth}x{extended and Constants.ExtendedWindowHeight or Constants.WindowHeight}')
+        self.geometry(f'''{Constants.WindowWidth}x{(extended 
+            and Constants.ExtendedWindowHeight or Constants.WindowHeight)}''')
 
     def get_font(self, family: str = None, size: int = 20, bold: bool = False):
         return customtkinter.CTkFont(family=family or Constants.BaseFont, size=size, 
-                weight=f'{bold and "bold" or "normal"}')
+            weight=f'{bold and "bold" or "normal"}')
     
     def seperator(self, master):
         seperator = customtkinter.CTkFrame(master, height=2, width=450, fg_color="white")
@@ -533,11 +604,12 @@ class App(customtkinter.CTk):
         self.default_font = font.nametofont("TkDefaultFont")
         self.default_font.actual()
 
-    def check_input_regex(self, input: str):
+    def is_valid(self, input: str):
         return Regex.compile(r"^[^<>/{}[\]~`]*$").match(input)
     
     def check_name_length(self, name: str):
-        return len(name) > Constants.App["NameMinimumLength"] and len(name) < Constants.App["NameMaximumLength"]
+        return (len(name) > Constants.App["NameMinimumLength"] 
+                and len(name) < Constants.App["NameMaximumLength"])
 
     def change_appearance(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)

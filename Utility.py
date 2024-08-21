@@ -1,3 +1,8 @@
+import uuid
+
+def generate_unique_id():
+    return str(uuid.uuid4())
+
 def split_string(string: str, max_characters: int):
     lines = []
     current_line = ""
