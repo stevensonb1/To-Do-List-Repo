@@ -1,7 +1,7 @@
 import customtkinter
 import keyring
 import Constants
-from App import App
+import App
 
 # Default
 customtkinter.set_appearance_mode("dark")
@@ -37,15 +37,18 @@ class Login(customtkinter.CTk):
     def display_status_error(self, status_error: str):
         if not status_error in Constants.DisplayErrors:
             raise Exception(f'No status error for {status_error}')    
-        self.status_error = customtkinter.CTkLabel(self.main_frame, text=Constants.DisplayErrors[status_error], text_color=self.LIGHT_RED_COLOUR)
+        self.status_error = customtkinter.CTkLabel(self.main_frame, 
+            text=Constants.DisplayErrors[status_error], text_color=self.LIGHT_RED_COLOUR)
         self.status_error.after(2000, self.status_error.destroy)
         self.status_error.pack(pady=100)
     
     def display_auth_error(self, widget):
-        widget.configure(placeholder_text_color=self.LIGHT_RED_COLOUR,border_color=self.LIGHT_RED_COLOUR)
+        widget.configure(placeholder_text_color=self.LIGHT_RED_COLOUR,
+            border_color=self.LIGHT_RED_COLOUR)
 
     def reset_auth(self, widget):
-        widget.configure(placeholder_text_color=self.DEFAULT_TEXT_COLOUR,border_color=self.DEFAULT_BORDER_COLOUR)
+        widget.configure(placeholder_text_color=self.DEFAULT_TEXT_COLOUR,
+            border_color=self.DEFAULT_BORDER_COLOUR)
 
     def auth_login_credentials(self):
         username = self.login_username.get()
@@ -55,7 +58,8 @@ class Login(customtkinter.CTk):
             self.display_auth_error(self.login_password)
         else:
             if keyring.get_password(service_id, username) == password:
-                App(username)
+               # App(username)
+               App.App("Test")
             else:
                 self.display_auth_error(self.login_username)
                 self.display_auth_error(self.login_password)
@@ -99,10 +103,12 @@ class Login(customtkinter.CTk):
             show="*",                              
         )
         self.login_password.pack()
-        login_submit = customtkinter.CTkButton(self.content_frame, text="Submit",
+        customtkinter.CTkButton(self.content_frame, text="Submit",
             command=self.auth_login_credentials).pack(pady=10)
-        create_account = customtkinter.CTkButton(self.content_frame, hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent",
-            text="Create Account", font=('',15,'underline'), command=self.load_create_account_menu).pack()
+        customtkinter.CTkButton(self.content_frame,
+            hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent",
+            text="Create Account", font=('',15,'underline'), 
+            command=self.load_create_account_menu).pack()
 
     def load_create_account_menu(self):
         self.delete_current_page()
@@ -118,9 +124,10 @@ class Login(customtkinter.CTk):
             show="*"       
         )
         self.account_password.pack()
-        account_register = customtkinter.CTkButton(self.content_frame, text="Register", 
+        customtkinter.CTkButton(self.content_frame, text="Register", 
             command=self.auth_account_credentials).pack(pady=10)
-        login_account = customtkinter.CTkButton(self.content_frame, hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent", 
+        customtkinter.CTkButton(self.content_frame, 
+            hover_color=self.LIGHT_GREY_COLOUR, fg_color="transparent", 
             text="Login Account", font=('',15,'underline'), command=self.load_login_menu).pack()
         
 if __name__ == "__main__":
