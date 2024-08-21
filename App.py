@@ -12,6 +12,13 @@ from Loading import Loading
 from queue import Queue
 import Utility as util, pywinstyles, random, time, threading
 
+def is_valid(input: str):
+        return Regex.compile(r"^[^<>/{}[\]~`]*$").match(input)
+    
+def check_name_length(name: str):
+    return (len(name) > Constants.App["NameMinimumLength"] 
+        and len(name) < Constants.App["NameMaximumLength"])
+
 class Task(customtkinter.CTkFrame):
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
 
@@ -92,16 +99,17 @@ class Task(customtkinter.CTkFrame):
         self.tasks_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.tasks_frame.pack_propagate(False)
 
-        tasks_title = customtkinter.CTkLabel(self.tasks_frame, text=f'{list_data["name"]} | Tasks',
+        customtkinter.CTkLabel(self.tasks_frame, text=f'{list_data["name"]} | Tasks',
             font=self.master.get_font(size=25)).pack(pady=30)
                 
-        tasks_back = customtkinter.CTkButton(self.tasks_frame, text="BACK", width=100, height=5, corner_radius=0,
+        customtkinter.CTkButton(self.tasks_frame, text="BACK", width=100, height=5, corner_radius=0,
             font=self.master.get_font(size=15, bold=True), fg_color="red", hover_color="dark red",
             command=lambda: self.list.reload_list_frame(self.tasks_frame)).place(relx=0.02,rely=0.92,anchor='w')
         
-        add_task = customtkinter.CTkButton(self.tasks_frame, text="+", height=20, width=65, corner_radius=0,
+        customtkinter.CTkButton(self.tasks_frame, text="+", height=20, width=65, corner_radius=0,
             font=self.master.get_font(size=18, bold=True), fg_color="#00D1FF", text_color="white",
-            hover_color="#26A6C2", command=lambda: self.load_task_modify_menu(list_data['name'])).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
+            hover_color="#26A6C2", 
+            command=lambda: self.load_task_modify_menu(list_data['name'])).place(relx=0.5,rely=0.92,anchor=customtkinter.CENTER)
         
         if list_data['tasks']:
             self.tasks_container = customtkinter.CTkScrollableFrame(self.tasks_frame, width=300, height=350,
@@ -185,9 +193,9 @@ class Task(customtkinter.CTkFrame):
         self.task_time.place(relx=0.35,rely=0.6,anchor=customtkinter.CENTER)
         self.task_time.bind('<Return>', self.validate_time)
 
-        self.calendar = customtkinter.CTkButton(self.modify_task_frame, text="", corner_radius=0,
-            width=20, image=self.CALENDAR_ICON, command=self.load_calendar)
-        self.calendar.place(relx=0.475,rely=0.6,anchor=customtkinter.CENTER)
+        #self.calendar = customtkinter.CTkButton(self.modify_task_frame, text="", corner_radius=0,
+        #    width=20, image=self.CALENDAR_ICON, command=self.load_calendar)
+        #self.calendar.place(relx=0.475,rely=0.6,anchor=customtkinter.CENTER)
 
         # Button to create or save information about the task
         customtkinter.CTkButton(self.modify_task_frame, text=task_name and "SAVE" or "COMPLETE", text_color="white",
@@ -352,10 +360,10 @@ class Task(customtkinter.CTkFrame):
         if len(task_name) == 0 or len(task_description) == 0:
             self.display_task_status("App_InvalidTaskInputLength")
         else:
-            if not self.master.check_name_length(task_name):
+            if not check_name_length(task_name):
                 self.display_task_status("App_InvalidNameLength", type="Name")
                 return
-            if not self.master.is_valid(task_name):
+            if not is_valid(task_name):
                 self.display_task_status("App_InvalidInput", type="Name")
                 return
             
@@ -385,17 +393,19 @@ class Task(customtkinter.CTkFrame):
             self.reload_tasks_frame(self.modify_task_frame)
 
 class List(customtkinter.CTkFrame):
-    def __init__(self, master, username: str):
+    def __init__(self, master, data: dict, main, username: str):
         super().__init__(master=master)
+        self.user_data = data
         self.username = username
         self.master = master
+        self.main = main
 
-        data = self.master.user_data.get()
+        data = self.user_data.get()
         for list_data in data['lists'].values():
             for task_data in list_data['tasks'].values():
                 due_date = task_data['due_date']
                 Timer(date=due_date['date'], time=due_date['time'],
-                    name=task_data['name'], fn=self.master.task_due_notification).start()
+                    name=task_data['name'], fn=self.main.task_due_notification).start()
 
         self.load_list_menu()
 
@@ -407,9 +417,9 @@ class List(customtkinter.CTkFrame):
         self.load_list_frame()
 
     def load_list_frame(self):
-        data = self.master.user_data.get()
+        data = self.user_data.get()
 
-        self.master.adjust_window_geomtry()
+        self.main.adjust_window_geomtry()
 
         self.lists_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=400, fg_color="#383736")
         self.lists_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
@@ -419,7 +429,7 @@ class List(customtkinter.CTkFrame):
                 font=customtkinter.CTkFont(family="Arial", size=25, weight="normal"))
             self.welcome_label.pack(pady=10)
 
-        create_list = customtkinter.CTkButton(self.lists_frame, text="CREATE LIST", width=200, height=35,
+        customtkinter.CTkButton(self.lists_frame, text="CREATE LIST", width=200, height=35,
             font=customtkinter.CTkFont(family="Arial", size=15, weight="bold"), 
             command=self.load_create_list_menu).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
@@ -430,7 +440,7 @@ class List(customtkinter.CTkFrame):
             self.load_saved_lists(data)
         else:
             customtkinter.CTkLabel(self.lists_frame, text="You have no lists \ncreate one to start setting tasks",
-                font=self.master.get_font()).place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
+                font=self.main.get_font()).place(relx=0.5,rely=0.45,anchor=customtkinter.CENTER)
             
     def reload_list_frame(self, current_displaying_frame):
         current_displaying_frame.destroy()
@@ -440,41 +450,41 @@ class List(customtkinter.CTkFrame):
         self.lists_frame.destroy()
         self.welcome_label.destroy()
 
-        self.master.adjust_window_geomtry()
+        self.main.adjust_window_geomtry()
 
         self.create_list_frame = customtkinter.CTkFrame(self.main_frame, width=500, height=300, fg_color="#383736")
         self.create_list_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
         self.create_list_frame.pack_propagate(False)
 
         customtkinter.CTkLabel(self.create_list_frame, text="CREATE LIST",
-            font=self.master.get_font(size=25)).pack(pady=10)
+            font=self.main.get_font(size=25)).pack(pady=10)
 
         customtkinter.CTkButton(self.create_list_frame, text="X", width=35, corner_radius=0,
-            font=self.master.get_font(size=22, bold=True), fg_color="red", hover_color="dark red",
+            font=self.main.get_font(size=22, bold=True), fg_color="red", hover_color="dark red",
             command=lambda: self.reload_list_frame(self.create_list_frame)).place(relx=0.99,rely=0.07,anchor='e')
 
-        self.master.seperator(self.create_list_frame)
+        self.main.seperator(self.create_list_frame)
 
         create_list_name = customtkinter.CTkEntry(self.create_list_frame, placeholder_text="NAME", corner_radius=0,
             width=400, border_width=0, fg_color="#D9D9D9", placeholder_text_color="black", text_color="black",
-            font=self.master.get_font(size=25, bold=True),
+            font=self.main.get_font(size=25, bold=True),
             justify=customtkinter.CENTER)
         create_list_name.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
 
-        create_list_complete = customtkinter.CTkButton(self.create_list_frame, text="COMPLETE", text_color="white",
-            width=200, font=self.master.get_font(), 
+        customtkinter.CTkButton(self.create_list_frame, text="COMPLETE", text_color="white",
+            width=200, font=self.main.get_font(), 
             command=lambda: self.create_list_complete_activated(create_list_name.get())).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
     def display_list_status(self, status_error: str, name: str = None, type: str = None):
         if hasattr(self, 'status_error') and self.status_error.winfo_exists():
             self.status_error.destroy()
         self.status_error = customtkinter.CTkLabel(self.create_list_frame, text=Constants.DisplayErrors[status_error].format(name=name, type=type),
-            font=self.master.get_font(), fg_color="transparent")
+            font=self.main.get_font(), fg_color="transparent")
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
 
     def create_list_complete_activated(self, list_name: str):
-        data = self.master.user_data.get()
-        if not self.master.check_name_length(list_name):
+        data = self.user_data.get()
+        if not check_name_length(list_name):
             self.display_list_status("App_InvalidNameLength", name="List")
             return
         if list_name.lower() in data['lists']:
@@ -485,7 +495,7 @@ class List(customtkinter.CTkFrame):
             'tasks': {},
             'date_created': datetime.now()
         }
-        self.master.user_data.update(data)
+        self.user_data.update(data)
         self.reload_list_frame(self.create_list_frame)
 
     def get_unfinished_tasks_count(self, tasks) -> int:
@@ -517,9 +527,9 @@ class List(customtkinter.CTkFrame):
                     font=self.master.get_font(size=12, bold=True)).place(relx=0.97, rely=0.15,anchor="e")
 
     def list_delete_activated(self, list_name: str):
-        data = self.master.user_data.get()
+        data = self.user_data.get()
         data['lists'].pop(list_name, None)
-        self.master.user_data.update(data)
+        self.user_data.update(data)
         self.reload_list_frame(self.lists_frame)
 
 class Notification(customtkinter.CTk):
@@ -555,14 +565,13 @@ class Notification(customtkinter.CTk):
         self.is_displaying = False
         self.display_next_notification()
 
-class App(customtkinter.CTk):
+class App:
     def __init__(self, username: str):
         super().__init__()
+        self.root = customtkinter.CTk()
         self.username = username
-
-        self.title("App")
-        self.adjust_window_geomtry()
-        self.resizable(width=False, height=False)
+      
+        self.setup_ui()
 
         # runtime events
         self.notification_ready = threading.Event()
@@ -570,13 +579,20 @@ class App(customtkinter.CTk):
         self.user_data = Data(username)
         
         self.load_fonts()
-        self.list = List(master=self, username=username)
+        self.list = List(master=self.root, 
+            data=self.user_data, username=username)
         
-        self.notification = Notification(self)
+        self.notification = Notification(self.root)
         self.notification_ready.set()
 
-        self.change_appearance("Dark")
-        self.mainloop()
+    def setup_ui(self):
+        self.root.title("App")
+        self.root.resizable(width=False, height=False)
+        self.adjust_window_geomtry()
+
+    def run(self):
+        self.root.change_appearance("Dark")
+        self.root.mainloop()
 
     def task_due_notification(self, task_name: str):
         # waits for notification ready event to fire
@@ -588,7 +604,7 @@ class App(customtkinter.CTk):
         threading.Thread(target=notification_async, daemon=True).start()
 
     def adjust_window_geomtry(self, extended: bool = False):
-        self.geometry(f'''{Constants.WindowWidth}x{(extended 
+        self.root.geometry(f'''{Constants.WindowWidth}x{(extended 
             and Constants.ExtendedWindowHeight or Constants.WindowHeight)}''')
 
     def get_font(self, family: str = None, size: int = 20, bold: bool = False):
@@ -603,13 +619,6 @@ class App(customtkinter.CTk):
     def load_fonts(self):
         self.default_font = font.nametofont("TkDefaultFont")
         self.default_font.actual()
-
-    def is_valid(self, input: str):
-        return Regex.compile(r"^[^<>/{}[\]~`]*$").match(input)
-    
-    def check_name_length(self, name: str):
-        return (len(name) > Constants.App["NameMinimumLength"] 
-                and len(name) < Constants.App["NameMaximumLength"])
 
     def change_appearance(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
