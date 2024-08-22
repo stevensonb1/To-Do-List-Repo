@@ -1,7 +1,7 @@
 import customtkinter
 import keyring
 import Constants
-import App
+from App import App as app
 
 # Default
 customtkinter.set_appearance_mode("dark")
@@ -53,16 +53,12 @@ class Login(customtkinter.CTk):
     def auth_login_credentials(self):
         username = self.login_username.get()
         password = self.login_password.get()
-        if len(username) == 0 or len(password) == 0:
-            self.display_auth_error(self.login_username)
-            self.display_auth_error(self.login_password)
-        else:
-            if keyring.get_password(service_id, username) == password:
-               # App(username)
-               App.App("Test")
-            else:
-                self.display_auth_error(self.login_username)
-                self.display_auth_error(self.login_password)
+        if keyring.get_password(service_id, username) == password:
+            self.destroy()
+            app(username=username).run()
+            return
+        self.display_auth_error(self.login_username)
+        self.display_auth_error(self.login_password)
 
     def auth_account_credentials(self):
         username = self.account_username.get()
@@ -81,7 +77,8 @@ class Login(customtkinter.CTk):
                 self.display_status_error('Login_InvalidUsername')
             else:
                 keyring.set_password(service_id, username, password)
-                App(username)
+                self.destroy()
+                app(username=username).run()
         
     def delete_current_page(self):
         [widget.destroy() for widget in self.content_frame.winfo_children()]
