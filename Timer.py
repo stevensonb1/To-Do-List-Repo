@@ -11,12 +11,22 @@ class Timer(threading.Thread):
         self.name = name
         self.func = fn
 
-    def run(self):
+    def update_due_date(self, date, time):
+        self.due_date = date
+        self.due_time = time
+
+    def check(self):
         due_datetime = datetime.strptime(f'{self.due_date} {self.due_time}', "%d/%m/%Y %I:%M %p")
 
         current_datetime = datetime.now()
         time_remaining = (due_datetime - current_datetime).total_seconds()
 
         if time_remaining > 0:
-            time.sleep(time_remaining)
-        self.func(self.name)
+            time.sleep(1) # Prevents crashing
+            self.check()
+        else:
+            self.func(self.name)
+
+    def run(self):
+       # initialises the recursive check
+       self.check()
