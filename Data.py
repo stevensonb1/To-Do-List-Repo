@@ -2,20 +2,37 @@ import pickle
 import os
 
 class Data():
+    """
+    A class to handle user data storage and retrieval using pickle
+    for serialization.
+    """
     DATA_FOLDER = 'Userdata'
 
     def __init__(self, username: str):
+        """
+        Initialises the data instance with a username and ensures the 
+        data folder exists.
+        """
         self.username = username
         self._ensure_data_folder_exists()
     
     def _ensure_data_folder_exists(self):
+        """
+        Creates the data folder if it does not arleady exist.
+        """
         if not os.path.exists(self.DATA_FOLDER):
             os.makedirs(self.DATA_FOLDER)
 
     def _get_file_path(self):
+        """
+        Constructs the file path for the user's data file.
+        """
         return os.path.join(self.DATA_FOLDER, f'{self.username}_data.pkl')
 
     def template(self):
+        """
+        Provides a template for the data structure
+        """
         return {
             'lists': {}
         }
