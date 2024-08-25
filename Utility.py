@@ -1,8 +1,10 @@
 import uuid
 
 def generate_unique_id():
+    # Generate and return a unique identifier based on RFC 4122
     return str(uuid.uuid4())
 
+# Can use this for Trialling of components
 def split_string(string: str, max_characters: int):
     lines = []
     current_line = ""
