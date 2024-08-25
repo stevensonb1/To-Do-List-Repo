@@ -48,6 +48,9 @@ NFOS = [
 ]
 
 class Task(customtkinter.CTkFrame):
+    """
+    A class representing a task within a to-do list
+    """
     PRIORITY_LEVELS = [str(level+1) for level in range(5)]
 
     DELETE_ICON = customtkinter.CTkImage(
@@ -64,6 +67,9 @@ class Task(customtkinter.CTkFrame):
         dark_image=Image.open("images/loading.png"))
 
     def __init__(self, master, data, main, list, list_name: str):
+        """
+        Initialises the task class.
+        """
         super().__init__(master=master)
         self.list = list
         self.list_name = list_name
@@ -72,7 +78,12 @@ class Task(customtkinter.CTkFrame):
         self.main = main
 
     def get_task_data(self, task_name: str) -> tuple[dict, dict, str]:
-        # returns user_data, task_data, task_id
+        """
+        Retrieves task data based on the task name
+
+        Returns:
+            tuple: A tuple containing user data, task data, and task ID.
+        """
         user_data = self.user_data.get()
         list_data = user_data['lists'][self.list_name]
         if not list_data:
@@ -82,6 +93,9 @@ class Task(customtkinter.CTkFrame):
                 return user_data, task_data, task_id
 
     def get_task_state(self, task_name: str) -> int:
+        """
+        Determines the state of the task based on its due date.
+        """
         data, task_data, *other = self.get_task_data(task_name)
         if task_data['completed']:
             return len(STATE_COLOURS)-1
@@ -105,6 +119,9 @@ class Task(customtkinter.CTkFrame):
         return state-1
     
     def get_completed_tasks(self) -> dict:
+        """
+        Retrieves all completed tasks from the task list.
+        """
         data = self.user_data.get()
         list_data = data['lists'][self.list_name]
         completed_tasks = {}
@@ -114,6 +131,9 @@ class Task(customtkinter.CTkFrame):
         return completed_tasks
 
     def load_tasks_frame(self):
+        """
+        Loads and displays the frame containing all tasks in the list.
+        """
         data = self.user_data.get()
         list_data = data['lists'][self.list_name]
 
@@ -160,6 +180,9 @@ class Task(customtkinter.CTkFrame):
         list_name: str = None, 
         task_name: str = None
     ):
+        """
+        Lodas the frame for modifying or creating a task.
+        """
         self.tasks_frame.destroy()
         self.main.adjust_window_geometry()
 
@@ -287,6 +310,9 @@ class Task(customtkinter.CTkFrame):
         ).place(relx=0.5,rely=0.9,anchor=customtkinter.CENTER)
 
     def validate_time(self, event = None):
+        """
+        Validates the format of the time string.
+        """
         time_str = self.time.get().upper()
         if "AM" in time_str or "PM" in time_str:
             try:
@@ -301,6 +327,9 @@ class Task(customtkinter.CTkFrame):
             self.time.set(value=self.valid_time)
 
     def load_calendar(self):
+        """
+        Displays a calendar widget for selecting a due date.
+        """
         def update_selected_date(event):
             self.task_date.configure(text=self.task_calendar.get_date())
 
@@ -326,6 +355,9 @@ class Task(customtkinter.CTkFrame):
         )
 
     def create_task_template(self, task_data: dict):
+        """
+        Creates and displays a task item in the UI.
+        """
         task_name = task_data['name']
         completed_check = customtkinter.IntVar(value=task_data['completed'])
         task_state = self.get_task_state(task_name)
@@ -392,6 +424,9 @@ class Task(customtkinter.CTkFrame):
         ).place(relx=0.88, rely=0.75, anchor="w")
 
     def cleanup_task_timer(self, task_id: str):
+        """
+        Cleans up any timers or background processes within tasks.
+        """
         timer = due_date_timers[task_id]
         if timer:
             timer.clean()
@@ -405,6 +440,9 @@ class Task(customtkinter.CTkFrame):
         self.cleanup_task_timer(task_id)
 
     def load_saved_tasks(self, list_data):
+        """
+        Loads and displays all saved tasks from the list data.
+        """
         prioritised_dict = {}
         for task_name, task_data in list_data['tasks'].items():
             if task_data['completed'] == True:
@@ -461,6 +499,9 @@ class Task(customtkinter.CTkFrame):
         threading.Timer(0.1*len(list_data['tasks']), load_widgets).start()
 
     def load_completed_tasks(self):
+        """
+        Loads and displays all completed tasks from the list data.
+        """
         completed_tasks = self.get_completed_tasks()
 
         if not completed_tasks:
@@ -479,6 +520,9 @@ class Task(customtkinter.CTkFrame):
             self.create_task_template(task_data)
         
     def reload_tasks_frame(self, current_displaying_frame):
+        """
+        Reloads the tasks frame, usually after modifying a task.
+        """
         current_displaying_frame.destroy()
         self.load_tasks_frame()
         
@@ -488,6 +532,9 @@ class Task(customtkinter.CTkFrame):
         type: str = None,
         rely: int = 0.65
     ): 
+        """
+        Displays status messages or errors to the user.
+        """
         if hasattr(self, 'status_error') and self.status_error.winfo_exists():
             self.status_error.destroy()
         self.status_error = customtkinter.CTkLabel(self.modify_task_frame, 
@@ -499,6 +546,10 @@ class Task(customtkinter.CTkFrame):
         self.status_error.place(relx=0.5,rely=rely,anchor=customtkinter.CENTER)
 
     def task_complete_activated(self, unique_id: str = None):
+        """
+        Displays error messages if invalid input as saves task to list
+        data with a unique identifer.
+        """
         self.validate_time()
 
         data = self.user_data.get()
@@ -580,7 +631,14 @@ class Task(customtkinter.CTkFrame):
         self.reload_tasks_frame(self.modify_task_frame)
 
 class List(customtkinter.CTkFrame):
+    """
+    A class that represents a list management UI within the app.
+    """
     def __init__(self, master, data: dict, main, username: str):
+        """
+        Initialises the list frame and sets up timers for tasks based 
+        on due daes.
+        """
         super().__init__(master=master)
         self.master = master
         self.user_data = data
@@ -599,6 +657,9 @@ class List(customtkinter.CTkFrame):
         self.load_list_menu()
 
     def load_list_menu(self):
+        """
+        Initialises and displays the main list menu frame.
+        """
         self.main_frame = customtkinter.CTkFrame(self.master, 
             width=600, height=500, fg_color="transparent")
         self.main_frame.place(relx=0.5,rely=0.5,anchor=customtkinter.CENTER)
@@ -607,6 +668,9 @@ class List(customtkinter.CTkFrame):
         self.load_list_frame()
 
     def load_list_frame(self):
+        """
+        Loads and displays the list frame with all user lists.
+        """
         data = self.user_data.get()
 
         self.main.adjust_window_geometry()
@@ -649,10 +713,16 @@ class List(customtkinter.CTkFrame):
                     anchor=customtkinter.CENTER)
             
     def reload_list_frame(self, current_displaying_frame):
+        """
+        Reloads the current list frame.
+        """
         current_displaying_frame.destroy()
         self.load_list_frame()
 
     def load_create_list_menu(self):
+        """
+        Displays the menu for creating a new list.
+        """
         self.lists_frame.destroy()
         self.welcome_label.destroy()
 
@@ -696,6 +766,9 @@ class List(customtkinter.CTkFrame):
         msg: str = None,
         type: str = None
     ):
+        """
+        Displays status messages or errors.
+        """
         if hasattr(self, 'status_error') and self.status_error.winfo_exists():
             self.status_error.destroy()
 
@@ -707,6 +780,9 @@ class List(customtkinter.CTkFrame):
         self.status_error.place(relx=0.5,rely=0.65,anchor=customtkinter.CENTER)
 
     def create_list_complete_activated(self, list_name: str):
+        """
+        Handles the completion of list creation.
+        """
         data = self.user_data.get()
         
         if not check_name_length(list_name):
@@ -728,10 +804,16 @@ class List(customtkinter.CTkFrame):
         self.reload_list_frame(self.create_list_frame)
 
     def get_unfinished_tasks_count(self, tasks) -> int:
+        """
+        Returns the count of unfinished tasks from the given task dictionary.
+        """
         return Counter(task_data['completed'] 
             for task_data in tasks.values())[False]
     
     def load_saved_lists(self, data):
+        """
+        Loads and displays saved lists from the user data
+        """
         for list_name, list_data in data['lists'].items():
             task = Task(master=self.master,
                 data=self.user_data, main=self.main,
@@ -777,15 +859,24 @@ class List(customtkinter.CTkFrame):
             ).place(relx=0.97, rely=0.15,anchor="e")
 
     def list_delete_activated(self, list_name: str):
+        """
+        Handles the deletion of a list.
+        """
         data = self.user_data.get()
         data['lists'].pop(list_name, None)
         self.user_data.update(data)
         self.reload_list_frame(self.lists_frame)
 
 class Notification(customtkinter.CTk):
+    """
+    A class to manage and display notifications to the user.
+    """
     DISPLAY_TIME = 5
 
     def __init__(self, root):
+        """
+        Initalises the notification class.
+        """
         super().__init__()
         self.root = root
         self.queue = Queue()
@@ -804,11 +895,18 @@ class Notification(customtkinter.CTk):
         self.notification_label.pack()
 
     def show_notification(self, message: str):
+        """
+        Adds a new notification to the queue and dispalys 
+        it if no other nofication is currently showing
+        """
         self.queue.put(message)
         if not self.is_displaying:
             self.display_next_notification()
     
     def display_next_notification(self):
+        """
+        Displays next notification in the queue.
+        """
         if not self.queue.empty():
             self.is_displaying = True
             message = self.queue.get()
@@ -820,12 +918,22 @@ class Notification(customtkinter.CTk):
             )
 
     def hide_notification(self):
+        """
+        Hides the current notification and displays the next one if available.
+        """
         self.notification_label.configure(text="")
         self.is_displaying = False
         self.display_next_notification()
 
 class App:
+    """
+    A class to manage the main app, 
+    including UI elements and user interactions.
+    """
     def __init__(self, main, username: str):
+        """
+        Initialises the app class.
+        """
         super().__init__()
         self.main = main
         self.username = username
@@ -851,6 +959,10 @@ class App:
         ).place(relx=0.92,rely=0.95,anchor=customtkinter.CENTER)
 
     def open_faqs(self):
+        """
+        Opens the FAQs section, displaying information about 
+        task colours and priorities.
+        """
         self.main.save_current_state()
 
         # Reset window size so widgets of FAQs fit correctly
@@ -960,12 +1072,18 @@ class App:
         self.faq_back.place(relx=0.1,rely=0.95,anchor="w")
 
     def logout(self):
+        """
+        Logs out the current user and opens the login screen
+        """
         # Importing login when logout is called to prevent circular imports
         from Login import Login
         self.main.remove_current_state()
         Login(self.main)
         
     def task_due_notification(self, task_name: str):
+        """
+        Displays a notification when a task is due.
+        """
         # waits for notification ready event to fire
         # calls show_nofication method to display GUI
         # that a task is due
@@ -975,18 +1093,30 @@ class App:
         threading.Thread(target=notification_async, daemon=True).start()
 
     def adjust_window_geometry(self, extended: bool = False):
+        """
+        Adjust the window size of the main app
+        """
         self.main.adjust_window_geometry(extended)
 
     def get_font(self, family: str = None, size: int = 20, bold: bool = False):
+        """
+        Retrieves a font with applied properties.
+        """
         return customtkinter.CTkFont(family=family or Constants.BaseFont, 
             size=size, weight=f'{bold and "bold" or "normal"}')
     
     def seperator(self, master):
+        """
+        Creates and returns a seperator widget.
+        """
         seperator = customtkinter.CTkFrame(master, 
             height=2, width=450, fg_color="white")
         seperator.pack(padx=0.5,pady=0.15)
         return seperator
 
     def load_fonts(self):
+        """
+        Loads the default font for the app.
+        """
         self.default_font = font.nametofont("TkDefaultFont")
         self.default_font.actual()
