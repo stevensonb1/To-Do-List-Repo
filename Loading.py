@@ -28,8 +28,13 @@ class Loading(threading.Thread):
         if not self.is_active:
             return
         rotated_image = self.rotate_image(light_image, angle)
-        self.label.configure(image=rotated_image)
-        self.label.image = rotated_image
+
+        self.label.after(0, self._update_image, rotated_image)
+
+    def _update_image(self, rotated_image):
+        if self.label.winfo_exists():
+            self.label.configure(image=rotated_image)
+            self.label.image = rotated_image
 
     def end_loading(self):
         self.is_active = False
