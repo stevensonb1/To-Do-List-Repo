@@ -7,31 +7,46 @@ from App import App
 customtkinter.set_appearance_mode("dark")
 
 class Main():
+    """
+    The main class handles the creation and management of the main app window
+    It initialises the root window, manages the window size,
+    and handles widget states.
+    """
     def __init__(self):
+        """
+        Initialises the main class by creating the main root window
+        and initialising the login class.
+        """
         super().__init__()
-        # Creates the main root "window" and initialises the login
         self.root = customtkinter.CTk()
         self.root.title(Constants.AppName)
         self.root.resizable(width=False, height=False)
 
-        #Login(self)
-        App(main=self, username="Test")
+        Login(self)
 
     def adjust_window_geometry(self, 
         extended: bool = False
     ):
-        # Stores the window size and updates the root geometry
+        """
+        Adjust the window geometry based on whether the extended
+        view is active or not.
+        """
         self.window_extended = extended
         self.root.geometry(f'''{Constants.WindowWidth}x{(extended 
             and Constants.ExtendedWindowHeight or Constants.WindowHeight)}''')
         
     def remove_current_state(self):
-        # Removes any widgets that are displayed in the main root
+        """
+        Removes all widgets currently displayed in the main root window.
+        """
         for widget in self.root.winfo_children():
             widget.destroy()
 
     def save_current_state(self):
-        # Stores window size and stores widget properties in a list
+        """
+        Saves the current state of the window, including its size
+        and the properties of its children widgets.
+        """
         self.previous_window_extended = self.window_extended
         self.previous_widgets = []
         for widget in self.root.winfo_children():
@@ -48,7 +63,10 @@ class Main():
             self.previous_widgets.append((widget, manager, layout_info))
         
     def hide_current_state(self):
-        # Hides any widgets that are displayed in the main root
+        """
+        Hides all widgets currently displayed in the main root window 
+        without removing them.
+        """
         for widget in self.root.winfo_children():
             if widget.winfo_manager() == 'pack':
                 widget.pack_forget()
@@ -58,10 +76,13 @@ class Main():
                 widget.grid_forget()
 
     def restore_previous_state(self):
-        # Resets the window size back to previous geometry
+        """
+        Restores the previous state of the window, including its size
+        and the properties of its widgets.
+        """
         self.adjust_window_geometry(self.previous_window_extended)
 
-        # Places widgets that were hidden with the same properties
+        
         for widget, manager, layout_info in self.previous_widgets:
             if manager == 'pack':
                 widget.pack(**layout_info)
