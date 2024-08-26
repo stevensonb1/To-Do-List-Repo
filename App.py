@@ -39,7 +39,7 @@ STATE_COLOURS = [
     "#004d00", # Completed
 ]
 
-NFOS = [
+COLOUR_STATE_INFOS = [
     "Due date is over a day",
     "Due date is within an hour and a day",
     "Due date is less than an hour away",
