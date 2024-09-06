@@ -1,3 +1,13 @@
+"""
+This module provides functionality to manage and display lists and
+tasks within a customtkinter based application.
+
+Author: Blake Stevenson
+Date: 2024-09-06
+Version: 1.0
+License: MIT
+"""
+
 import customtkinter
 import constants
 import re as Regex
@@ -5,7 +15,7 @@ import utility as util
 import pywinstyles
 import threading
 
-from tkinter import font
+from tkinter import font    
 from collections import Counter
 from datetime import datetime
 from data import Data
@@ -45,11 +55,11 @@ due_date_timers = {}
 
 # Constants
 STATE_COLOURS = [
-    "#8a8a8a", # Not due
-    "#d4d400", # Due date getting closer
-    "#e68a00", # Due date very close
-    "#6c3b3b", # Is due or pass due date
-    "#004d00", # Completed
+    "#8a8a8a", 
+    "#d4d400",
+    "#e68a00", 
+    "#6c3b3b",
+    "#004d00", 
 ]
 
 COLOUR_STATE_INFOS = [
@@ -161,7 +171,7 @@ class Task(customtkinter.CTkFrame):
         self.main.adjust_window_geometry(extended=True)
 
         self.tasks_frame = customtkinter.CTkFrame(
-            self.task_list.main_frame,
+            self.list.main_frame,
             width=350, 
             height=550, 
             fg_color="#383736"
@@ -176,7 +186,7 @@ class Task(customtkinter.CTkFrame):
         ).pack(pady=30)
 
         def back_clicked():
-            self.task_list.reload_list_frame(self.tasks_frame)
+            self.list.reload_list_frame(self.tasks_frame)
 
         customtkinter.CTkButton(
             self.tasks_frame, 
@@ -222,7 +232,7 @@ class Task(customtkinter.CTkFrame):
                 font=self.main.get_font()
             ).place(relx=0.5, rely=0.45, anchor=customtkinter.CENTER)
         
-    def load_task_modify_menu(self, task_name: str = None):
+    def load_task_modify_menu(self, list_name: str = None, task_name: str = None):
         """
         Lodas the frame for modifying or creating a task.
         """
@@ -242,10 +252,12 @@ class Task(customtkinter.CTkFrame):
         )
         self.modify_task_frame.pack_propagate(False)
 
-        data, task_data, task_id = (
-            self.get_task_data(task_name) 
-            if task_name else ({}, {}, None)
-        )
+        print("TASK_NAME", task_name)
+        result = self.get_task_data(task_name) if task_name else ({}, {}, None)
+        print(result)
+        if result is None:
+            result = ({}, {}, None)
+        _, task_data, task_id = result
 
         due_date = task_data and task_data['due_date']
         task_description = task_data and task_data['description']
@@ -284,6 +296,8 @@ class Task(customtkinter.CTkFrame):
             value=task_description if task_description else "Task Description"
         )
 
+        print(task_name)
+
         self.task_name = customtkinter.CTkEntry(
             self.modify_task_frame, 
             corner_radius=0, 
@@ -291,10 +305,11 @@ class Task(customtkinter.CTkFrame):
             border_width=0, 
             fg_color="#D9D9D9", 
             text_color="black", 
-            textvariable=task_name_var,
+            textvariable=task_name and task_name_var,
             placeholder_text=task_name or "Task Name",
             placeholder_text_color=placeholder_text_color,
-            font=self.main.get_font(size=25, bold=True), justify=customtkinter.CENTER
+            font=self.main.get_font(size=25, bold=True), 
+            justify=customtkinter.CENTER
         )
         self.task_name.place(relx=0.5, rely=0.25, anchor=customtkinter.CENTER)
 
@@ -308,9 +323,14 @@ class Task(customtkinter.CTkFrame):
             textvariable=task_name and task_description_var,
             placeholder_text=task_description or "Task Description", 
             placeholder_text_color=placeholder_text_color,
-            font=self.main.get_font(size=25, bold=True), justify=customtkinter.CENTER
+            font=self.main.get_font(size=25, bold=True), 
+            justify=customtkinter.CENTER
         )
-        self.task_description.place(relx=0.5, rely=0.35, anchor=customtkinter.CENTER)
+        self.task_description.place(
+            relx=0.5, 
+            rely=0.35, 
+            anchor=customtkinter.CENTER
+        )
 
         priority_string_var = customtkinter.StringVar(
             value=str(priority_level) if priority_level else "1"
@@ -327,7 +347,11 @@ class Task(customtkinter.CTkFrame):
             text_color="black",
             font=self.main.get_font(size=25, bold=True)
         )
-        self.task_priority.place(relx=0.25, rely=0.45, anchor=customtkinter.CENTER)
+        self.task_priority.place(
+            relx=0.25, 
+            rely=0.45, 
+            anchor=customtkinter.CENTER
+        )
 
         customtkinter.CTkLabel(
             self.modify_task_frame, 
@@ -440,7 +464,11 @@ class Task(customtkinter.CTkFrame):
             cursor='hand2',
             date_pattern='dd/mm/y'
         )
-        self.task_calendar.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+        self.task_calendar.place(
+            relx=0.5, 
+            rely=0.5, 
+            anchor=customtkinter.CENTER
+        )
         self.task_calendar.bind('<<CalendarSelected>>', update_selected_date)
 
         self.close_calendar = customtkinter.CTkButton(
@@ -451,7 +479,11 @@ class Task(customtkinter.CTkFrame):
             hover_color="red",
             command=destroy_calendar
         )
-        self.close_calendar.place(relx=0.5, rely=0.75, anchor=customtkinter.CENTER)
+        self.close_calendar.place(
+            relx=0.5, 
+            rely=0.75, 
+            anchor=customtkinter.CENTER
+        )
 
     def create_task_template(self, task_data: dict):
         """
@@ -605,7 +637,11 @@ class Task(customtkinter.CTkFrame):
         self.load_completed_tasks()
 
         def load_widgets():
-            self.tasks_container.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+            self.tasks_container.place(
+                relx=0.5, 
+                rely=0.5, 
+                anchor=customtkinter.CENTER
+            )
 
             for widget in self.hidden_widgets:
                 if isinstance(widget, list):
@@ -668,7 +704,11 @@ class Task(customtkinter.CTkFrame):
             text=constants.DisplayErrors[status_error].format(msg=msg, type=type),
             font=self.main.get_font()
         )
-        self.status_error.place(relx=0.5, rely=rely, anchor=customtkinter.CENTER)
+        self.status_error.place(
+            relx=0.5, 
+            rely=rely, 
+            anchor=customtkinter.CENTER
+        )
 
     def task_complete_activated(self, unique_id: str = None):
         """
@@ -862,7 +902,11 @@ class List(customtkinter.CTkFrame):
                 scrollbar_button_color="#2d2c2c", 
                 fg_color="transparent"
             )
-            self.lists_container.place(relx=0.5, rely=0.45, anchor=customtkinter.CENTER)
+            self.lists_container.place(
+                relx=0.5, 
+                rely=0.45, 
+                anchor=customtkinter.CENTER
+            )
             self.load_saved_lists(data)
         else:
             customtkinter.CTkLabel(
@@ -893,7 +937,11 @@ class List(customtkinter.CTkFrame):
             height=300, 
             fg_color="#383736"
         )
-        self.create_list_frame.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+        self.create_list_frame.place(
+            relx=0.5, 
+            rely=0.5, 
+            anchor=customtkinter.CENTER
+        )
         self.create_list_frame.pack_propagate(False)
 
         customtkinter.CTkLabel(
@@ -963,7 +1011,11 @@ class List(customtkinter.CTkFrame):
             font=self.main.get_font(), 
             fg_color="transparent"
         )
-        self.status_error.place(relx=0.5, rely=0.65, anchor=customtkinter.CENTER)
+        self.status_error.place(
+            relx=0.5, 
+            rely=0.65, 
+            anchor=customtkinter.CENTER
+        )
 
     def create_list_complete_activated(self, list_name: str):
         """
