@@ -1,0 +1,103 @@
+"""
+This module provides the `Timer` class for scheduling and executing a function
+at a specific date and time using threading.
+
+Imports:
+- threading: For creating and managing threads.
+- datetime: For handling date and time operations.
+- time: For handling time-related operations.
+
+Classes:
+- Timer: A class that extends `threading.Thread` to run a specified function
+  at a scheduled date and time.
+
+Attributes:
+- due_date (str): The date when the timer is due, formatted as "%d/%m/%Y".
+- due_time (str): The time when the timer is due, formatted as "%I:%M %p".
+- name (str): The name associated with the timer.
+- func (callable): The function to be executed when the timer expires.
+- _stop_event: (event): Internal thread event to kill the timer thread.
+
+Methods:
+- __init__(self, date: str = None, time: str = None, name: str = None, fn = None):
+    Initializes the `Timer` with a due date, time, name, and function.
+- update_due_date(self, date: str, time: str):
+    Updates the due date and time for the timer.
+- clean(self):
+    Stops the timer and terminates the thread.
+- check(self):
+    Recursively checks the remaining time until the due date and time, and
+    executes the function if the timer expires.
+- run(self):
+    Starts the timer by calling the `check` method.
+
+Author: Blake Stevenson
+Date: 2024-09-06
+Version: 1.0
+License: MIT
+"""
+
+import threading
+import time
+
+from datetime import datetime
+
+
+class Timer(threading.Thread):
+    """
+    A thread-based class for scheduling and executing a function at a specific
+    date and time.
+    """
+    def __init__(self, 
+                 date: str = None, 
+                 time: str = None, 
+                 name: str = None, 
+                 fn = None):
+        """
+        Initializes the Timer with a due date, time, name, and function.
+        """
+        super().__init__()
+        self.due_date = date
+        self.due_time = time
+        self.name = name
+        self.func = fn
+        self._stop_event = threading.Event()
+
+    def update_due_date(self, date: str, time: str):
+        """
+        Updates the due date and time for the timer.
+        """
+        self.due_date = date
+        self.due_time = time
+
+    def clean(self):
+        """
+        Stops the timer and terminates the thread.
+        """
+        self._stop_event.set()
+
+    def check(self):
+        """
+        Recursively checks the time remaining until the due date and time.
+        Executes the callback function if the timer expires.
+        """
+        due_datetime = datetime.strptime(
+            f'{self.due_date} {self.due_time}', "%d/%m/%Y %I:%M %p")
+
+        while not self._stop_event.is_set():
+            current_datetime = datetime.now()
+            time_remaining = (due_datetime - current_datetime).total_seconds()
+
+            if time_remaining > 0:
+                time.sleep(1)
+                self.check()
+            else:
+                if self.func:
+                    self.func(self.name)
+                break
+
+    def run(self):
+        """
+        Starts the timer by calling the check method.
+        """
+        self.check()
