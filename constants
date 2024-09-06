@@ -1,0 +1,56 @@
+"""
+This module defines constants and settings used throughout the application. 
+It includes configurations for window dimensions, application constraints, 
+error messages, and font specifications.
+
+Window Dimensions:
+- WindowHeight: Default height of the main application window.
+- WindowWidth: Default width of the main application window.
+- ExtendedWindowHeight: Height of the window when extended.
+
+Application Constraints:
+- App: Dictionary containing constraints for application names
+and descriptions, including minimum and maximum length.
+
+Error Messages:
+- DisplayErrors: Dictionary of error messages used for validation purposes 
+related to login, application names, task inputs, and general input constraints. 
+Error messages may contain placeholders for dynamic content.
+
+Font:
+- BaseFont: Default font used in the application.
+
+Author: Blake Stevenson
+Date: 2024-09-06
+Version: 1.0
+License: MIT
+"""
+AppName = "To-do List"
+
+WindowHeight = 500
+WindowWidth = 800
+ExtendedWindowHeight = 650
+
+App = {
+    'NameMinimumLength': 0,
+    'NameMaximumLength': 15,
+
+    'DescriptionMaximumLength': 50,
+}
+
+DisplayErrors = {
+    'Login_InvalidPasswordLength': "Password must be more than 8 characters",
+    'Login_InvalidUsername': 'This username is already in use',
+    'App_InvalidName': 'You already have a {type} named "{msg}"',
+
+    'App_InvalidNameLength': ('''{msg} must be between \n%s-%s characters'''
+        %(App['NameMinimumLength'], App['NameMaximumLength'])),
+
+    'App_InvalidDescriptionLength': ('''{msg} cannot exceed %s characters'''
+        %(App['DescriptionMaximumLength'])),
+
+    'App_InvalidTaskInput': 'Task name is a required field',
+    'App_InvalidInput': '{msg} cannot contain any symbols'
+}
+
+BaseFont = "Arial"
