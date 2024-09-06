@@ -1,0 +1,108 @@
+"""
+This module provides the "Data" class to handle user-specific data management. 
+It includes methods to ensure data folder existence, save and load data using 
+pickle serialization, and manage data templates for users.
+
+Imports:
+- pickle: For serializing and deserializing Python objects.
+- os: For file and directory operations.
+
+Classes:
+- Data: Manages user-specific data storage and retrieval.
+
+Attributes:
+- DATA_FOLDER (str): Directory where user data is stored.
+
+Methods:
+- __init__(self, username: str): Initializes the Data instance for a specific user.
+- _ensure_data_folder_exists(self): Ensures that the data folder exists.
+- _get_file_path(self): Constructs the file path for the user's data file.
+- template(self): Returns a default data template for new users.
+- get(self): Retrieves user data, loading from file or 
+             creating a new template if none exists.
+- update(self, data): Saves the provided data to the user's data file.
+- save(self, object): Serializes and saves the data to a file.
+- load(self): Loads and deserializes the user data from a file, 
+              handling missing files.
+
+Author: Blake Stevenson
+Date: 2024-09-06
+Version: 1.0
+License: MIT
+"""
+
+import pickle
+import os
+
+
+class Data:
+    """
+    Handles saving and loading user data using pickle serialization. Ensures that
+    the data folder exists and provides methods for managing user-specific data
+    templates and file operations.
+    """
+    
+    # Constants
+    DATA_FOLDER = 'Userdata'
+
+    def __init__(self, username: str):
+        """
+        Initializes the Data instance for a specific user.
+        """
+        self.username = username
+        self._ensure_data_folder_exists()
+    
+    def _ensure_data_folder_exists(self):
+        """
+        Ensures that the data folder exists. Creates the folder if it does not.
+        """
+        if not os.path.exists(self.DATA_FOLDER):
+            os.makedirs(self.DATA_FOLDER)
+
+    def _get_file_path(self):
+        """
+        Constructs the file path for the user's data file.
+        """
+        return os.path.join(self.DATA_FOLDER, f'{self.username}_data.pkl')
+
+    def template(self):
+        """
+        Returns a default data template for new users.
+        """
+        return {
+            'lists': {}
+        }
+
+    def get(self):
+        """
+        Retrieves user data, loading from file or creating 
+        a new template if none exists.
+        """
+        if self.load() is None:
+            self.save(self.template())
+        return self.load()
+
+    def update(self, data):
+        """
+        Saves the provided data to the user's data file.
+        """
+        self.save(data)
+
+    def save(self, obj):
+        """
+        Serializes and saves the data to a file.
+        """
+        with open(self._get_file_path(), "wb") as file:
+            pickle.dump(obj, file)
+    
+    def load(self):
+        """
+        Loads and deserializes the user data from a file.
+        """
+        try:
+            with open(self._get_file_path(), "rb") as file:
+                loaded_data = pickle.load(file)
+                return loaded_data
+        except FileNotFoundError:
+            print(f'{self.username}_data.pkl does not exist. No data found.')
+            return None
